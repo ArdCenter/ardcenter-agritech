@@ -1,12 +1,26 @@
 import React, { useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import Footer from './Footer';
 import WeatherWidget from './WeatherWidget';
 import './home.css';
 
 const Home = () => {
   const { t, i18n } = useTranslation();
   const location = useLocation();
+  const categoryTranslationKeys = {
+    'Plantes': 'cat_plants',
+    'Semences': 'cat_seeds',
+    'Engrais': 'cat_fertilizers',
+    'Matériel': 'cat_equipment',
+    'Phytosanitaires': 'cat_phytosanitary',
+    'Capteurs IoT': 'cat_iot',
+    'Tracteurs': 'cat_tractors',
+    'Excavatrices': 'cat_excavators',
+    'Moissonneuses': 'cat_harvesters',
+    'Matériel de Transport': 'cat_transport',
+    'Matériel agricole': 'cat_agri_equipment'
+  };
 
   const [searchQuery, setSearchQuery] = React.useState('');
   const [suggestions, setSuggestions] = React.useState([]);
@@ -211,17 +225,19 @@ const Home = () => {
                 <h3 className="text-2xl font-bold tracking-tight">{t('other_services')}</h3>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="group bg-surface rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all">
+                <div className="group bg-surface rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col">
                   <div className="relative h-48">
-                    <img className="w-full h-full object-contain transition-transform duration-500" data-alt="industrial grade fertilizer spreaders" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCEkYDpCdG56EFDrUNP5-nL5W7JlgiLgOtebLpvOcGYJqqfv_RgPubvF-D4iB6syHsV6_6T36cUDF1AvFzOuOl9FZq77zYyQppmq8f7nAPuztMudOGdJFY7Lh6C3mkpbwTLtbLqaqB5ounAHVgaBU-B7qVliGoYstcpE6VzBetqNEzbCLgWx97QLFIoTyn1BB_nCszwC69fixmrO__coxRt2HFeBNPDu7zfYUUlQbFmJFleWqOwwhyMPqr7LjtYfEVutYvGMo2rR7Q" />
-                    <div className="absolute top-4 left-4 bg-tertiary text-white text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-tighter">{t('recommended')}</div>
+                    <Link to="/plant-disease-detection" className="block w-full h-full">
+                      <img className="w-full h-full object-cover transition-transform duration-500" alt="Plant disease detection AI service" src="https://images.unsplash.com/photo-1592841200221-a6898f307baa?q=80&w=800&auto=format&fit=crop" />
+                    </Link>
+                    <div className="absolute top-4 left-4 bg-tertiary text-white text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-tighter">{t('new_service')}</div>
                   </div>
-                  <div className="p-6">
-                    <h4 className="font-bold text-lg mb-1">Nitrogen Optimizer XL</h4>
-                    <p className="text-sm text-on-surface-variant mb-4">{i18n.language === 'ar' ? 'بناءً على تحليلات التربة الأخيرة لقطاع 4-B.' : 'Based on your recent soil analytics for Sector 4-B.'}</p>
-                    <div className="flex items-center justify-between">
-                      <span className="text-primary font-bold">1,240.00 {t('currency')} / Ton</span>
-                      <button className="material-symbols-outlined text-primary p-2 bg-primary/10 rounded-full">add_shopping_cart</button>
+                  <div className="p-6 flex-1 flex flex-col">
+                    <h4 className="font-bold text-lg mb-1">{t('plant_disease_title')}</h4>
+                    <p className="text-sm text-on-surface-variant mb-4 flex-1">{t('plant_disease_desc')}</p>
+                    <div className="flex items-center justify-between mt-auto">
+                      <span className="text-primary font-bold uppercase text-xs tracking-widest">{t('free_try')}</span>
+                      <Link to="/plant-disease-detection" className="material-symbols-outlined text-primary p-2 bg-primary/10 rounded-full inline-block hover:scale-105 transition-transform">arrow_forward</Link>
                     </div>
                   </div>
                 </div>
@@ -283,8 +299,12 @@ const Home = () => {
                       </Link>
                     </div>
                   </div>
-                  <span className="text-[10px] font-black text-tertiary uppercase mb-1 tracking-widest">{t(product.category.toLowerCase()) || product.category}</span>
-                  <Link to={`/product/${product.id}`} className="font-bold text-lg hover:text-primary transition-colors line-clamp-1">{product.name}</Link>
+                  <span className="text-[10px] font-black text-tertiary uppercase mb-1 tracking-widest">
+                    {t(categoryTranslationKeys[product.category]) || product.category}
+                  </span>
+                  <Link to={`/product/${product.id}`} className="font-bold text-lg hover:text-primary transition-colors line-clamp-1">
+                    {i18n.language.startsWith('ar') && product.name_ar ? product.name_ar : product.name}
+                  </Link>
                   <p className="text-primary font-black mt-2 text-xl">{product.price.replace('DH', t('currency'))}</p>
                 </div>
               ))}
@@ -294,40 +314,7 @@ const Home = () => {
 
       </main>
 
-      {/* Footer */}
-      <footer className="bg-stone-100 dark:bg-stone-950 w-full border-t border-stone-200 dark:border-stone-800">
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-8 px-10 py-12 max-w-7xl mx-auto">
-          <div className="col-span-2">
-            <span className="text-sm font-bold text-stone-900 dark:text-stone-50 block mb-4">AgriCentral</span>
-            <p className="text-stone-500 text-sm max-w-xs mb-6">{t('footer_desc')}</p>
-            <div className="flex gap-4">
-              <a className="material-symbols-outlined p-2 bg-stone-200 dark:bg-stone-800 rounded-lg text-stone-600" href="#">public</a>
-              <a className="material-symbols-outlined p-2 bg-stone-200 dark:bg-stone-800 rounded-lg text-stone-600" href="#">mail</a>
-            </div>
-          </div>
-          <div className="flex flex-col gap-4 font-inter text-xs uppercase tracking-widest">
-            <span className="font-bold text-green-900 dark:text-green-100">{t('market_footer')}</span>
-            <a className="text-stone-500 dark:text-stone-400 hover:underline" href="#">{i18n.language === 'ar' ? 'قطاع الهكتار' : 'Sector 4-B'}</a>
-            <a className="text-stone-500 dark:text-stone-400 hover:underline" href="#">{i18n.language === 'ar' ? 'تجارة الماشية' : 'Livestock Trading'}</a>
-            <a className="text-stone-500 dark:text-stone-400 hover:underline" href="#">{t('cat_seeds')} &amp; {t('livestock_feed')}</a>
-          </div>
-          <div className="flex flex-col gap-4 font-inter text-xs uppercase tracking-widest">
-            <span className="font-bold text-green-900 dark:text-green-100">{t('tech_footer')}</span>
-            <a className="text-stone-500 dark:text-stone-400 hover:underline" href="#">Ag-Tech Solutions</a>
-            <a className="text-stone-500 dark:text-stone-400 hover:underline" href="#">Soil Analytics</a>
-            <a className="text-stone-500 dark:text-stone-400 hover:underline" href="#">IoT Integration</a>
-          </div>
-          <div className="flex flex-col gap-4 font-inter text-xs uppercase tracking-widest">
-            <span className="font-bold text-green-900 dark:text-green-100">{t('company_footer')}</span>
-            <a className="text-stone-500 dark:text-stone-400 hover:underline" href="#">{t('contact_us')}</a>
-            <a className="text-stone-500 dark:text-stone-400 hover:underline" href="#">{t('delivery_logistics')}</a>
-            <a className="text-stone-500 dark:text-stone-400 hover:underline" href="#">{t('privacy_policy')}</a>
-          </div>
-        </div>
-        <div className="max-w-7xl mx-auto px-10 py-6 border-t border-stone-200 dark:border-stone-800 text-center">
-          <p className="text-stone-400 text-[10px] uppercase tracking-widest">{t('copyright')}</p>
-        </div>
-      </footer>
+      <Footer />
 
     </>
   );

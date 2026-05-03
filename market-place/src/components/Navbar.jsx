@@ -52,16 +52,23 @@ const Navbar = () => {
 
   return (
     <>
-      <header className="bg-surface/80 dark:bg-stone-950/80 backdrop-blur-md fixed top-0 w-full z-[100] shadow-sm transition-all duration-300">
-        <div className="flex justify-between items-center px-6 py-4 max-w-screen-2xl mx-auto">
-          <div className="flex items-center gap-4 lg:gap-8 overflow-hidden">
+      <header className="bg-surface fixed top-0 left-0 right-0 z-[100] border-b border-stone-200 transition-all duration-300">
+        <div className="flex justify-between items-center px-6 py-2 max-w-7xl mx-auto">
+          <div className="flex items-center gap-6">
             <button 
               onClick={() => setIsMenuOpen(true)}
               className="md:hidden material-symbols-outlined p-2 text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800 rounded-lg"
             >
               menu
             </button>
-            <Link to="/" className="text-xl font-bold tracking-tighter text-primary shrink-0">AgriCentral</Link>
+            <Link to="/" className="shrink-0 flex items-center gap-[12px] group h-full">
+              <img src="/logo-transparent.png" alt="" className="h-8 w-auto object-contain transition-transform group-hover:scale-110" />
+              <div className="flex flex-col leading-none">
+                <span className="font-black text-2xl tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-stone-900 via-primary to-primary-container">
+                  ARD<span className="font-medium">CENTER</span>
+                </span>
+              </div>
+            </Link>
             <nav className="hidden md:flex gap-6 font-manrope text-sm font-semibold tracking-tight">
               {isAdmin ? (
                 <>
@@ -123,7 +130,10 @@ const Navbar = () => {
         <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setIsMenuOpen(false)}></div>
         <aside className={`absolute left-0 top-0 h-full w-4/5 max-w-xs bg-surface shadow-2xl transition-transform duration-300 ease-out border-r border-outline/20 p-6 ${isMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
           <div className="flex items-center justify-between mb-10">
-            <span className="text-xl font-bold tracking-tighter text-primary">AgriCentral</span>
+            <div className="flex items-center gap-[2px] mb-6">
+            <img src="/Logo-transparent.png" alt="" className="h-16 w-auto object-contain translate-y-[2px]" />
+            <span className="font-headline font-black text-2xl text-primary tracking-tighter uppercase leading-none">ARDCENTER</span>
+          </div>
             <button onClick={() => setIsMenuOpen(false)} className="material-symbols-outlined p-2 text-stone-500">close</button>
           </div>
           

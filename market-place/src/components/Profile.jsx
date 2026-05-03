@@ -610,6 +610,7 @@ const Profile = () => {
                                 <option value="Moissonneuses">{t('cat_harvesters')}</option>
                                 <option value="Excavatrices">{t('cat_excavators')}</option>
                                 <option value="Matériel de Transport">{t('cat_transport')}</option>
+                                <option value="Matériel agricole">{t('cat_agri_equipment')}</option>
                             </>
                         ) : (
                             <>

@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useTranslation } from 'react-i18next';
+import Footer from './Footer';
 
 const categoriesData = [
   { id: 'All Products', name: 'nav_marketplace', icon: 'agriculture' },
@@ -209,7 +210,7 @@ const Products = () => {
                   )}
                 </div>
               </div>
-              <div className="flex items-center gap-3 w-full md:w-auto bg-white dark:bg-stone-900 p-3 px-4 rounded-2xl border border-stone-200 dark:border-stone-800 shadow-sm overflow-hidden">
+              <div className="flex items-center gap-3 w-full md:w-auto bg-stone-100/50 dark:bg-stone-900/50 p-3 px-4 rounded-2xl border border-stone-200 dark:border-stone-800 overflow-hidden">
                 <span className="material-symbols-outlined text-stone-400 text-sm">sort</span>
                 <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="bg-transparent border-none text-xs font-bold focus:ring-0 cursor-pointer flex-1 md:pr-10 text-on-surface truncate">
                   <option>{t('popularity')}</option>
@@ -231,7 +232,9 @@ const Products = () => {
                         ? product.image 
                         : `${import.meta.env.VITE_API_URL}${product.image}`} 
                     />
-                    <span className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm px-2 py-1 rounded text-[10px] font-bold uppercase tracking-widest text-primary">{t(categoriesData.find(c => c.id === product.category)?.name || product.category)}</span>
+                    <span className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm px-2 py-1 rounded text-[10px] font-bold uppercase tracking-widest text-primary">
+                      {t(categoriesData.find(c => c.id.toLowerCase() === product.category.toLowerCase())?.name) || product.category}
+                    </span>
                   </div>
                   <div className="p-5 flex flex-col flex-1">
                     <div className="flex justify-between items-start mb-2">
@@ -286,12 +289,7 @@ const Products = () => {
         </main>
       </div>
 
-      <footer className="w-full py-12 px-8 border-t border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-900 pb-32 md:pb-12 text-center md:text-left">
-          <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
-            <span className="font-manrope font-extrabold text-green-950 dark:text-white text-xl">AgriCentral</span>
-            <p className="text-stone-400 text-[10px] uppercase tracking-widest">{t('copyright')}</p>
-          </div>
-      </footer>
+      <Footer />
     </>
   );
 };

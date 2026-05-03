@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
+import Footer from './Footer';
 
 const ProductDetails = () => {
   const { t, i18n } = useTranslation();
@@ -19,7 +20,8 @@ const ProductDetails = () => {
     'Tracteurs': 'cat_tractors',
     'Moissonneuses': 'cat_harvesters',
     'Excavatrices': 'cat_excavators',
-    'Matériel de Transport': 'cat_transport'
+    'Matériel de Transport': 'cat_transport',
+    'Matériel agricole': 'cat_agri_equipment'
   };
   const [product, setProduct] = useState(null);
   const [similarProducts, setSimilarProducts] = useState([]);
@@ -424,36 +426,17 @@ const ProductDetails = () => {
                       : `${import.meta.env.VITE_API_URL}${p.image}`} 
                   />
                 </div>
-                <h5 className="font-bold text-stone-900 dark:text-stone-50 text-lg mb-1 group-hover:text-primary transition-colors">{p.name}</h5>
-                <p className="text-sm font-black text-primary">{p.price}</p>
+                <h5 className="font-bold text-stone-900 dark:text-stone-50 text-lg mb-1 group-hover:text-primary transition-colors">
+                  {i18n.language.startsWith('ar') && p.name_ar ? p.name_ar : p.name}
+                </h5>
+                <p className="text-sm font-black text-primary">{p.price.replace('DH', t('currency'))}</p>
               </Link>
             ))}
           </div>
         </div>
       </section>
 
-      <footer className="w-full py-12 px-8 border-t border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-900">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-7xl mx-auto">
-          <div className="flex flex-col gap-4">
-            <span className="font-headline font-extrabold text-green-950 dark:text-white text-2xl">AgriCentral Marketplace</span>
-            <p className="text-stone-500 dark:text-stone-400 font-inter text-xs tracking-wide max-w-sm">
-              © 2024 AgriCentral. {t('footer_rights')}
-            </p>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="flex flex-col gap-2">
-              <h4 className="font-bold text-green-900 dark:text-green-100 text-sm mb-2">{t('legal')}</h4>
-              <a className="text-stone-500 dark:text-stone-400 font-inter text-xs tracking-wide hover:underline decoration-green-800/30 transition-opacity opacity-80 hover:opacity-100" href="#">{t('privacy_policy')}</a>
-              <a className="text-stone-500 dark:text-stone-400 font-inter text-xs tracking-wide hover:underline decoration-green-800/30 transition-opacity opacity-80 hover:opacity-100" href="#">{t('tos')}</a>
-            </div>
-            <div className="flex flex-col gap-2">
-              <h4 className="font-bold text-green-900 dark:text-green-100 text-sm mb-2">{t('company')}</h4>
-              <a className="text-stone-500 dark:text-stone-400 font-inter text-xs tracking-wide hover:underline decoration-green-800/30 transition-opacity opacity-80 hover:opacity-100" href="#">{t('sustainability')}</a>
-              <a className="text-stone-500 dark:text-stone-400 font-inter text-xs tracking-wide hover:underline decoration-green-800/30 transition-opacity opacity-80 hover:opacity-100" href="#">{t('contact_us')}</a>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </>
   );
 };

@@ -345,6 +345,7 @@ const AdminProducts = () => {
                                     <option value="Excavatrices">Excavatrices</option>
                                     <option value="Moissonneuses">Moissonneuses</option>
                                     <option value="Matériel de Transport">Matériel de Transport</option>
+                                    <option value="Matériel agricole">Matériel agricole</option>
                                 </>
                             ) : (
                                 <>
@@ -602,6 +603,7 @@ const AdminProducts = () => {
                             <optgroup label="Location">
                                 <option value="Tracteurs">Tracteurs</option>
                                 <option value="Moissonneuses">Moissonneuses</option>
+                                <option value="Matériel agricole">Matériel agricole</option>
                             </optgroup>
                         </select>
                     </div>

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
+import Footer from './Footer';
 
 const Orders = () => {
   const { t, i18n } = useTranslation();
@@ -314,7 +315,7 @@ const Orders = () => {
         {/* Header Section */}
         <header className="mb-12">
           <h1 className="text-4xl md:text-5xl font-headline font-black tracking-tight text-on-surface">{t('order_history')}</h1>
-          <p className="text-stone-500 dark:text-stone-400 mt-2 font-medium">{i18n.language === 'ar' ? 'تتبع سجل وحالة مقتنياتك من AgriCentral.' : 'Suivez l\'historique et l\'état de vos acquisitions AgriCentral.'}</p>
+          <p className="text-stone-500 dark:text-stone-400 mt-2 font-medium">{i18n.language === 'ar' ? 'تتبع سجل وحالة مقتنياتك من ARDCENTER.' : 'Suivez l\'historique et l\'état de vos acquisitions ARDCENTER.'}</p>
         </header>
 
         {isLoading ? (
@@ -379,6 +380,7 @@ const Orders = () => {
           </div>
         )}
       </main>
+      <Footer />
     </div>
   );
 };

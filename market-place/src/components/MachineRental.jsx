@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useTranslation } from 'react-i18next';
+import Footer from './Footer';
 
 const MachineRental = () => {
   const { t, i18n } = useTranslation();
@@ -14,7 +15,7 @@ const MachineRental = () => {
   const [isLoading, setIsLoading] = useState(true);
   
   // We initialize all categories to be selected
-  const availableCategories = ['Tracteurs', 'Moissonneuses', 'Excavatrices', 'Matériel de Transport'];
+  const availableCategories = ['Tracteurs', 'Moissonneuses', 'Excavatrices', 'Matériel de Transport', 'Matériel agricole'];
   const [selectedCats, setSelectedCats] = useState(new Set(availableCategories));
   const [duration, setDuration] = useState('jour'); // 'jour', 'semaine', 'mois'
 
@@ -24,6 +25,7 @@ const MachineRental = () => {
       case 'Moissonneuses': return 'cat_harvesters';
       case 'Excavatrices': return 'cat_excavators';
       case 'Matériel de Transport': return 'cat_transport';
+      case 'Matériel agricole': return 'cat_agri_equipment';
       default: return cat;
     }
   };
@@ -64,7 +66,7 @@ const MachineRental = () => {
           <div className="sticky top-24 z-10 space-y-8">
             <div>
               <h1 className="text-4xl font-extrabold text-primary mb-2 leading-tight">{t('machine_rental_title')}</h1>
-              <p className="text-on-surface-variant text-sm font-body">AgriCentral — Precision Earth Fleet</p>
+              <p className="text-on-surface-variant text-sm font-body">ARDCENTER — Precision Earth Fleet</p>
             </div>
             <div className="bg-surface-container-low p-6 rounded-xl space-y-6">
               <div>
@@ -171,6 +173,7 @@ const MachineRental = () => {
           )}
         </section>
       </main>
+      <Footer />
     </div>
   );
 };

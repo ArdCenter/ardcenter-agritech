@@ -91,6 +91,7 @@ const MachineBooking = () => {
           case 'Moissonneuses': return 'cat_harvesters';
           case 'Excavatrices': return 'cat_excavators';
           case 'Matériel de Transport': return 'cat_transport';
+          case 'Matériel agricole': return 'cat_agri_equipment';
           default: return cat;
         }
     };

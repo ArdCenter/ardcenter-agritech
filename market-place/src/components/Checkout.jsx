@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useTranslation } from 'react-i18next';
+import Footer from './Footer';
 
 const Checkout = () => {
   const { t, i18n } = useTranslation();
@@ -104,7 +105,7 @@ const Checkout = () => {
       <main className="pt-24 pb-20 px-6 md:px-12 max-w-[1440px] mx-auto mt-16 px-6">
         <header className="mb-12">
           <h1 className="text-4xl md:text-5xl font-black tracking-tight text-on-surface font-headline">{t('checkout_header')}</h1>
-          <p className="text-stone-500 dark:text-stone-400 mt-2 font-medium">AgriCentral Marketplace — {t('legal')}</p>
+          <p className="text-stone-500 dark:text-stone-400 mt-2 font-medium">ARDCENTER Marketplace — {t('legal')}</p>
         </header>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
@@ -411,28 +412,7 @@ const Checkout = () => {
         </div>
       )}
 
-      <footer className="w-full py-12 px-8 border-t border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-900">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-7xl mx-auto">
-          <div className="flex flex-col gap-4">
-            <span className="font-headline font-extrabold text-green-950 dark:text-white text-2xl">AgriCentral Marketplace</span>
-            <p className="text-stone-500 dark:text-stone-400 font-inter text-xs tracking-wide max-w-sm">
-              © 2024 AgriCentral. {t('footer_rights')}
-            </p>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="flex flex-col gap-2">
-              <h4 className="font-bold text-green-900 dark:text-green-100 text-sm mb-2">{t('legal')}</h4>
-              <a className="text-stone-500 dark:text-stone-400 font-inter text-xs tracking-wide hover:underline decoration-green-800/30 transition-opacity opacity-80 hover:opacity-100" href="#">{t('privacy_policy')}</a>
-              <a className="text-stone-500 dark:text-stone-400 font-inter text-xs tracking-wide hover:underline decoration-green-800/30 transition-opacity opacity-80 hover:opacity-100" href="#">{t('tos')}</a>
-            </div>
-            <div className="flex flex-col gap-2">
-              <h4 className="font-bold text-green-900 dark:text-green-100 text-sm mb-2">{t('company')}</h4>
-              <a className="text-stone-500 dark:text-stone-400 font-inter text-xs tracking-wide hover:underline decoration-green-800/30 transition-opacity opacity-80 hover:opacity-100" href="#">{t('sustainability')}</a>
-              <a className="text-stone-500 dark:text-stone-400 font-inter text-xs tracking-wide hover:underline decoration-green-800/30 transition-opacity opacity-80 hover:opacity-100" href="#">{t('contact_us')}</a>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 };

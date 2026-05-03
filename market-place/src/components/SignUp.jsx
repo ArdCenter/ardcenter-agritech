@@ -65,8 +65,8 @@ const SignUp = () => {
         <div className="w-full lg:w-1/2 flex items-center justify-center p-8 md:p-16 lg:p-24 bg-[#fafaf5]">
           <div className="max-w-md w-full space-y-10 mt-12 md:mt-0">
             <div className="space-y-4">
-              <div className="lg:hidden font-headline text-xl font-extrabold tracking-tight text-[#32602c] mb-8">
-                AgriCentral
+              <div className="lg:hidden mb-8">
+                <img src="/logo.png" alt="ARDCENTER" className="h-10 w-auto object-contain" />
               </div>
               <h1 className="font-headline text-4xl font-extrabold text-[#1a1c19] tracking-tight leading-tight">
                 {t('signup_title')}

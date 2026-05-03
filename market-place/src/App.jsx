@@ -18,6 +18,7 @@ import Profile from './components/Profile';
 import MobileNav from './components/MobileNav';
 import MachineRental from './components/MachineRental';
 import MachineBooking from './components/MachineBooking';
+import PlantDiseaseDetection from './components/PlantDiseaseDetection';
 
 import AdminRoute from './components/Admin/AdminRoute';
 import AdminLayout from './components/Admin/AdminLayout';
@@ -55,6 +56,7 @@ const AppContent = () => {
         <Route path="/profile" element={<Profile />} />
         <Route path="/machine-rental" element={<MachineRental />} />
         <Route path="/machine-rental/:id/booking" element={<MachineBooking />} />
+        <Route path="/plant-disease-detection" element={<PlantDiseaseDetection />} />
         
         {/* Admin Routes */}
         <Route element={<AdminRoute />}>
