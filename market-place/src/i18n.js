@@ -31,8 +31,8 @@ i18n
           "have_account": "Déjà un compte ?",
           
           // Home
-          "hero_title": "Precision Earth Engineering.",
-          "hero_subtitle": "Agriculture de Demain. Accédez au marché agricole le plus sophistiqué.",
+          "hero_title": "Agriculture de demain",
+          "hero_subtitle": "Achetez, louez, diagnostiquez et consultez — tout en un seul endroit.",
           "search_placeholder": "Rechercher des ressources...",
           "find_button": "Trouver",
           "departments": "Départements",
@@ -297,8 +297,8 @@ i18n
           "have_account": "لديك حساب بالفعل؟",
           
           // Home
-          "hero_title": "هندسة الأرض الدقيقة.",
-          "hero_subtitle": "زراعة الغد. الوصول إلى المتجر الزراعي الأكثر تطوراً.",
+          "hero_title": "زراعة الغد",
+          "hero_subtitle": "اشتر، استأجر، شخّص واستشر — كل شيء في مكان واحد.",
           "search_placeholder": "البحث عن الموارد...",
           "find_button": "بحث",
           "departments": "الأقسام",

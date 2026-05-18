@@ -174,15 +174,20 @@ const AdminProducts = () => {
             };
             
             if (newProduct.is_rental) {
-                if (Array.isArray(newProduct.rental_period)) {
-                    payload.rental_period = newProduct.rental_period.join(', ');
-                    if (newProduct.rental_period.length > 0) {
-                        const firstPeriod = newProduct.rental_period[0];
-                        payload.price = `${newProduct.rental_prices[firstPeriod]} DH / ${firstPeriod}`;
-                    } else {
-                        payload.price = 'Sur demande';
-                    }
+                const periods = [];
+                if (newProduct.rental_prices.Jour) periods.push('Jour');
+                if (newProduct.rental_prices.Semaine) periods.push('Semaine');
+                if (newProduct.rental_prices.Mois) periods.push('Mois');
+                
+                payload.rental_period = periods.join(', ');
+                
+                if (periods.length > 0) {
+                    const firstPeriod = periods[0];
+                    payload.price = `${newProduct.rental_prices[firstPeriod]} DH / ${firstPeriod}`;
+                } else {
+                    payload.price = 'Sur demande';
                 }
+                
                 payload.rental_prices = newProduct.rental_prices;
             }
 

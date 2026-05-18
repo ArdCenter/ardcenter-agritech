@@ -133,14 +133,45 @@ const MachineRental = () => {
                 <div key={product.id} className="group flex flex-col bg-surface-container-low rounded-xl overflow-hidden hover:shadow-[0px_12px_32px_rgba(26,28,25,0.06)] transition-all duration-300">
                   <div className="relative h-72 overflow-hidden">
                     <img className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" alt={product.name} src={product.image} />
-                    <div className="absolute top-4 left-4 bg-primary text-white px-3 py-1 rounded-sm text-[10px] font-extrabold tracking-widest uppercase">{t('nav_services')}</div>
+                    <div className="absolute top-4 left-4 bg-primary text-white px-3 py-1 rounded-sm text-[10px] font-extrabold tracking-widest uppercase">
+                      {t(getCategoryKey(product.category))}
+                    </div>
                     <div className="absolute bottom-4 right-4 bg-white/90 backdrop-blur-md px-4 py-2 rounded-lg">
-                      <span className="text-xl font-extrabold text-on-surface">
-                        {duration === 'semaine' ? (product.numericPrice * 7).toLocaleString() : duration === 'mois' ? (product.numericPrice * 30).toLocaleString() : product.numericPrice.toLocaleString()} {t('currency')}
-                      </span>
-                      <span className="text-xs font-medium text-on-surface-variant">
-                        {duration === 'semaine' ? ` / ${t('week')}` : duration === 'mois' ? ` / ${t('month')}` : ` / ${t('day')}`}
-                      </span>
+                      {(() => {
+                        let parsedPrices = {};
+                        try {
+                            if (product.rental_prices) parsedPrices = typeof product.rental_prices === 'string' ? JSON.parse(product.rental_prices) : product.rental_prices;
+                        } catch(e) {}
+                        
+                        if (product.numericPrice === 0 || product.price === 'Sur demande') {
+                          return <span className="text-xl font-extrabold text-on-surface">Sur demande</span>;
+                        }
+                        
+                        const periodKey = duration === 'jour' ? 'Jour' : duration === 'semaine' ? 'Semaine' : 'Mois';
+                        if (parsedPrices[periodKey] && parsedPrices[periodKey] !== "") {
+                           return (
+                             <>
+                               <span className="text-xl font-extrabold text-on-surface">
+                                 {Number(parsedPrices[periodKey]).toLocaleString()} {t('currency')}
+                               </span>
+                               <span className="text-xs font-medium text-on-surface-variant">
+                                 {` / ${t(duration)}`}
+                               </span>
+                             </>
+                           );
+                        }
+                        
+                        return (
+                          <>
+                            <span className="text-xl font-extrabold text-on-surface">
+                              {duration === 'semaine' ? (product.numericPrice * 7).toLocaleString() : duration === 'mois' ? (product.numericPrice * 30).toLocaleString() : product.numericPrice.toLocaleString()} {t('currency')}
+                            </span>
+                            <span className="text-xs font-medium text-on-surface-variant">
+                              {duration === 'semaine' ? ` / ${t('week')}` : duration === 'mois' ? ` / ${t('month')}` : ` / ${t('day')}`}
+                            </span>
+                          </>
+                        );
+                      })()}
                     </div>
                   </div>
                   <div className="p-8 flex flex-col flex-1">

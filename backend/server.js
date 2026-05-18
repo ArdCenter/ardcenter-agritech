@@ -85,9 +85,14 @@ app.post('/api/products', (req, res) => {
         // Calculate numeric price for sorting
         let numericPrice = 0;
         try {
-            numericPrice = typeof price === 'string' 
-                ? parseInt(price.replace(/[^0-9]/g, '')) 
-                : Number(price);
+            if (price) {
+                const parsed = typeof price === 'string' 
+                    ? parseInt(price.replace(/[^0-9]/g, '')) 
+                    : Number(price);
+                if (!isNaN(parsed)) {
+                    numericPrice = parsed;
+                }
+            }
         } catch (e) {
             console.error('Price parsing error:', e);
         }
@@ -161,9 +166,14 @@ app.put('/api/products/:id', (req, res) => {
         
         let numericPrice = 0;
         try {
-            numericPrice = typeof price === 'string' 
-                ? parseInt(price.replace(/[^0-9]/g, '')) 
-                : Number(price);
+            if (price) {
+                const parsed = typeof price === 'string' 
+                    ? parseInt(price.replace(/[^0-9]/g, '')) 
+                    : Number(price);
+                if (!isNaN(parsed)) {
+                    numericPrice = parsed;
+                }
+            }
         } catch (e) {
             console.error('Price parsing error:', e);
         }
