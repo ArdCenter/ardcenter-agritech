@@ -1,0 +1,7 @@
+backend/market.sqlite
+TEST_CREDENTIALS.md
+*.sqlite
+*.db
+.env
+node_modules/
+dist/

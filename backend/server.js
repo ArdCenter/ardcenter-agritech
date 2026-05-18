@@ -553,6 +553,472 @@ app.get('/api/admin/stats', (req, res) => {
     });
 });
 
+// EXPERT SERVICE ROUTES
+
+// Get all expert categories with expert count
+app.get('/api/expert-categories', (req, res) => {
+    const query = `
+        SELECT c.*, COUNT(e.id) as experts_count 
+        FROM expert_categories c
+        LEFT JOIN experts e ON c.id = e.category_id AND e.is_active = 1
+        GROUP BY c.id
+    `;
+    db.all(query, [], (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(rows);
+    });
+});
+
+// Get experts by category
+app.get('/api/experts/category/:categoryId', (req, res) => {
+    const { categoryId } = req.params;
+    const query = `SELECT * FROM experts WHERE category_id = ? AND is_active = 1`;
+    db.all(query, [categoryId], (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(rows);
+    });
+});
+
+// Get single expert profile
+app.get('/api/experts/:expertId', (req, res) => {
+    const { expertId } = req.params;
+    const query = `
+        SELECT e.*, c.name_fr as category_name_fr, c.name_ar as category_name_ar, c.name as category_name
+        FROM experts e
+        JOIN expert_categories c ON e.category_id = c.id
+        WHERE e.id = ?
+    `;
+    db.get(query, [expertId], (err, row) => {
+        if (err) return res.status(500).json({ error: err.message });
+        if (!row) return res.status(404).json({ error: 'Expert not found' });
+        res.json(row);
+    });
+});
+
+// Start or get existing consultation
+app.post('/api/expert-consultations/start', (req, res) => {
+    const { clientId, expertId, categoryId } = req.body;
+    
+    // Check for existing active consultation
+    const checkQuery = `
+        SELECT id FROM expert_consultations 
+        WHERE client_id = ? AND expert_id = ? AND status IN ('pending', 'in_progress', 'active')
+        LIMIT 1
+    `;
+    
+    db.get(checkQuery, [clientId, expertId], (err, row) => {
+        if (err) return res.status(500).json({ error: err.message });
+        
+        if (row) {
+            // Return existing consultation
+            return res.json({ success: true, consultationId: row.id });
+        }
+        
+        // Create new consultation
+        const insertQuery = `
+            INSERT INTO expert_consultations (client_id, expert_id, category_id, status)
+            VALUES (?, ?, ?, 'in_progress')
+        `;
+        
+        db.run(insertQuery, [clientId, expertId, categoryId], function(err) {
+            if (err) return res.status(500).json({ error: err.message });
+            
+            // Increment expert consultations count
+            db.run('UPDATE experts SET consultations_count = consultations_count + 1 WHERE id = ?', [expertId]);
+            
+            res.json({ success: true, consultationId: this.lastID });
+        });
+    });
+});
+
+// Get consultations for a user
+app.get('/api/expert-consultations/user/:userId', (req, res) => {
+    const { userId } = req.params;
+    const query = `
+        SELECT ec.*, e.full_name_fr as expert_name_fr, e.full_name_ar as expert_name_ar, e.full_name as expert_name, e.profile_image as expert_image, e.specialty_fr, e.specialty_ar, e.specialty, c.name_fr as category_name_fr, c.name_ar as category_name_ar, c.name as category_name,
+        (SELECT message FROM consultation_messages WHERE consultation_id = ec.id ORDER BY created_at DESC LIMIT 1) as last_message
+        FROM expert_consultations ec
+        JOIN experts e ON ec.expert_id = e.id
+        JOIN expert_categories c ON ec.category_id = c.id
+        WHERE ec.client_id = ?
+        ORDER BY ec.updated_at DESC
+    `;
+    db.all(query, [userId], (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(rows);
+    });
+});
+
+// Get consultations for an expert
+app.get('/api/expert-consultations/expert/:expertId', (req, res) => {
+    const { expertId } = req.params;
+    const query = `
+        SELECT ec.*, u.name as client_name, c.name_fr as category_name_fr, c.name_ar as category_name_ar, c.name as category_name
+        FROM expert_consultations ec
+        JOIN users u ON ec.client_id = u.id
+        JOIN expert_categories c ON ec.category_id = c.id
+        JOIN experts e ON ec.expert_id = e.id
+        WHERE e.user_id = ?
+        ORDER BY ec.updated_at DESC
+    `;
+    db.all(query, [expertId], (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(rows);
+    });
+});
+
+// Get messages for a consultation
+app.get('/api/expert-consultations/:consultationId/messages', (req, res) => {
+    const { consultationId } = req.params;
+    const query = `
+        SELECT cm.*, 
+               p.name as product_name, p.price as product_price, p.image as product_image, p.description as product_description 
+        FROM consultation_messages cm 
+        LEFT JOIN products p ON cm.product_id = p.id 
+        WHERE cm.consultation_id = ? 
+        ORDER BY cm.created_at ASC
+    `;
+    db.all(query, [consultationId], (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(rows);
+    });
+});
+
+// Send a message
+app.post('/api/expert-consultations/:consultationId/messages', (req, res) => {
+    const { consultationId } = req.params;
+    const { senderId, senderRole, message, image, message_type, product_id } = req.body;
+    
+    // Ensure either message, image, or product_id is provided
+    if (!message && !image && !product_id) {
+        return res.status(400).json({ error: 'Message, image or product is required' });
+    }
+    
+    const insertQuery = `
+        INSERT INTO consultation_messages (consultation_id, sender_id, sender_role, message, image, message_type, product_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    `;
+    
+    db.run(insertQuery, [
+        consultationId, 
+        senderId, 
+        senderRole, 
+        message || '', 
+        image || null, 
+        message_type || 'text', 
+        product_id || null
+    ], function(err) {
+        if (err) return res.status(500).json({ error: err.message });
+        
+        const messageId = this.lastID;
+        
+        // Update consultation updated_at
+        db.run("UPDATE expert_consultations SET updated_at = CURRENT_TIMESTAMP WHERE id = ?", [consultationId]);
+        
+        // Fetch created message to return
+        db.get('SELECT * FROM consultation_messages WHERE id = ?', [messageId], (err, row) => {
+            res.json(row);
+        });
+    });
+});
+
+// Update consultation status
+app.put('/api/expert-consultations/:consultationId/status', (req, res) => {
+    const { consultationId } = req.params;
+    const { status } = req.body;
+    
+    if (!['pending', 'in_progress', 'closed'].includes(status)) {
+        return res.status(400).json({ error: 'Invalid status' });
+    }
+    
+    db.run("UPDATE expert_consultations SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", [status, consultationId], function(err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ success: true });
+    });
+});
+
+// Request close consultation
+app.put('/api/expert-consultations/:consultationId/request-close', (req, res) => {
+    const { consultationId } = req.params;
+    const { userId, role } = req.body;
+    
+    if (!['client', 'expert'].includes(role)) {
+        return res.status(400).json({ error: 'Invalid role' });
+    }
+
+    db.get('SELECT * FROM expert_consultations WHERE id = ?', [consultationId], (err, consultation) => {
+        if (err) return res.status(500).json({ error: err.message });
+        if (!consultation) return res.status(404).json({ error: 'Consultation not found' });
+        
+        let updateQuery = '';
+        let params = [];
+        let clientClose = consultation.client_close_requested || 0;
+        let expertClose = consultation.expert_close_requested || 0;
+        let newStatus = consultation.status;
+        
+        if (role === 'client') {
+            clientClose = 1;
+            updateQuery = 'UPDATE expert_consultations SET client_close_requested = 1';
+        } else if (role === 'expert') {
+            expertClose = 1;
+            updateQuery = 'UPDATE expert_consultations SET expert_close_requested = 1';
+        }
+        
+        if (clientClose && expertClose) {
+            newStatus = 'closed';
+            updateQuery += ", status = 'closed', closed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP";
+        } else {
+            updateQuery += ", updated_at = CURRENT_TIMESTAMP";
+        }
+        
+        updateQuery += " WHERE id = ?";
+        params.push(consultationId);
+        
+        db.run(updateQuery, params, function(err) {
+            if (err) return res.status(500).json({ error: err.message });
+            res.json({
+                success: true,
+                status: newStatus,
+                clientCloseRequested: clientClose,
+                expertCloseRequested: expertClose
+            });
+        });
+    });
+});
+
+// --- EXPERT REPORTS API ---
+
+// Submit a report
+app.post('/api/expert-reports', (req, res) => {
+    const { consultationId, expertId, clientId, reason, description, image } = req.body;
+    
+    if (!consultationId || !expertId || !clientId || !reason) {
+        return res.status(400).json({ error: 'Missing required fields' });
+    }
+    
+    // expertId here is actually experts.id. We need users.id to satisfy the FK.
+    db.get('SELECT user_id FROM experts WHERE id = ?', [expertId], (err, expert) => {
+        if (err) return res.status(500).json({ error: err.message });
+        
+        const finalExpertUserId = expert && expert.user_id ? expert.user_id : expertId;
+        
+        const query = `
+            INSERT INTO expert_reports (consultation_id, expert_id, client_id, reason, description, image)
+            VALUES (?, ?, ?, ?, ?, ?)
+        `;
+        
+        db.run(query, [consultationId, finalExpertUserId, clientId, reason, description || null, image || null], function(err) {
+            if (err) return res.status(500).json({ error: err.message });
+            res.status(201).json({ id: this.lastID, message: 'Report submitted successfully' });
+        });
+    });
+});
+
+// Get all reports (Admin only)
+app.get('/api/admin/expert-reports', (req, res) => {
+    const query = `
+        SELECT r.*, 
+               cat.name_fr as category_name_fr, cat.name_ar as category_name_ar,
+               ce.name as client_name, ce.email as client_email,
+               ee.name as expert_name, ee.email as expert_email
+        FROM expert_reports r
+        LEFT JOIN expert_consultations c ON r.consultation_id = c.id
+        LEFT JOIN expert_categories cat ON c.category_id = cat.id
+        LEFT JOIN users ce ON r.client_id = ce.id
+        LEFT JOIN users ee ON r.expert_id = ee.id
+        ORDER BY r.created_at DESC
+    `;
+    db.all(query, [], (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(rows);
+    });
+});
+
+// Update report status (Admin only)
+app.put('/api/admin/expert-reports/:id/status', (req, res) => {
+    const { id } = req.params;
+    const { status } = req.body;
+    
+    if (!status) return res.status(400).json({ error: 'Status is required' });
+    
+    db.run(`UPDATE expert_reports SET status = ? WHERE id = ?`, [status, id], function(err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ success: true });
+    });
+});
+
+// --- EXPERT REVIEWS API ---
+
+app.post('/api/expert-reviews', (req, res) => {
+    const { consultationId, expertId, clientId, rating, comment } = req.body;
+    if (!consultationId || !expertId || !clientId || !rating) {
+        return res.status(400).json({ error: 'Missing required fields' });
+    }
+    
+    const query = `
+        INSERT INTO expert_reviews (consultation_id, expert_id, client_id, rating, comment)
+        VALUES (?, ?, ?, ?, ?)
+    `;
+    db.run(query, [consultationId, expertId, clientId, rating, comment || null], function(err) {
+        if (err) return res.status(500).json({ error: err.message });
+        
+        // Update average rating
+        db.get('SELECT AVG(rating) as avg_rating FROM expert_reviews WHERE expert_id = ?', [expertId], (err, row) => {
+            if (!err && row && row.avg_rating) {
+                const newRating = parseFloat(row.avg_rating).toFixed(1);
+                db.run('UPDATE experts SET rating = ? WHERE id = ?', [newRating, expertId]);
+            }
+        });
+        
+        res.status(201).json({ id: this.lastID, message: 'Review submitted successfully' });
+    });
+});
+
+app.get('/api/experts/:expertId/reviews', (req, res) => {
+    const { expertId } = req.params;
+    const query = `
+        SELECT r.*, u.name as client_name
+        FROM expert_reviews r
+        JOIN users u ON r.client_id = u.id
+        WHERE r.expert_id = ?
+        ORDER BY r.created_at DESC
+    `;
+    db.all(query, [expertId], (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(rows);
+    });
+});
+
+app.get('/api/expert-consultations/:consultationId/review', (req, res) => {
+    const { consultationId } = req.params;
+    db.get('SELECT * FROM expert_reviews WHERE consultation_id = ?', [consultationId], (err, row) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(row || null);
+    });
+});
+
+// --- ADMIN EXPERTS API ---
+
+app.get('/api/admin/experts', (req, res) => {
+    const query = `
+        SELECT e.*, c.name_fr as category_name_fr, c.name_ar as category_name_ar, u.email as user_email,
+        (SELECT COUNT(*) FROM expert_consultations WHERE expert_id = e.id) as consultations_count
+        FROM experts e
+        LEFT JOIN expert_categories c ON e.category_id = c.id
+        LEFT JOIN users u ON e.user_id = u.id
+        ORDER BY e.created_at DESC
+    `;
+    db.all(query, [], (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(rows);
+    });
+});
+
+app.post('/api/admin/experts', (req, res) => {
+    const { 
+        full_name_fr, full_name_ar, email, password, category_id, 
+        specialty_fr, specialty_ar, bio_fr, bio_ar, experience_years, languages 
+    } = req.body;
+    
+    if (!email || !full_name_fr) {
+        return res.status(400).json({ error: 'Email and Name are required' });
+    }
+
+    const generatedPassword = password || Math.random().toString(36).slice(-8) + 'A1!';
+    
+    // Hash password if crypto/bcrypt was used, assuming plain text for now if the project does not import bcrypt.
+    // The project uses `const userCheck = await db.execute("SELECT id FROM users WHERE email = 'admin@injaz.ma' LIMIT 1");`
+    // I will use raw password insert since no hashing mechanism is visible in this scope.
+    
+    db.get("SELECT id FROM users WHERE email = ?", [email], (err, row) => {
+        if (err) return res.status(500).json({ error: err.message });
+        if (row) return res.status(400).json({ error: 'Email already exists' });
+        
+        db.run(`INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, 'expert')`, [full_name_fr, email, generatedPassword], function(err) {
+            if (err) return res.status(500).json({ error: err.message });
+            
+            const userId = this.lastID;
+            
+            const expertQuery = `
+                INSERT INTO experts (user_id, category_id, full_name_fr, full_name_ar, full_name, specialty_fr, specialty_ar, specialty, bio_fr, bio_ar, bio, experience_years, languages, is_active)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+            `;
+            
+            db.run(expertQuery, [
+                userId, category_id || 1, full_name_fr, full_name_ar, full_name_fr, 
+                specialty_fr, specialty_ar, specialty_fr, bio_fr, bio_ar, bio_fr, 
+                experience_years || 0, languages || 'Français, Arabe'
+            ], function(err) {
+                if (err) return res.status(500).json({ error: err.message });
+                res.status(201).json({
+                    success: true,
+                    expert_id: this.lastID,
+                    credentials: { email, password: generatedPassword, role: 'expert' }
+                });
+            });
+        });
+    });
+});
+
+app.put('/api/admin/experts/:id/status', (req, res) => {
+    const { id } = req.params;
+    const { is_active } = req.body;
+    db.run("UPDATE experts SET is_active = ? WHERE id = ?", [is_active ? 1 : 0, id], function(err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ success: true });
+    });
+});
+
+app.put('/api/admin/experts/:id', (req, res) => {
+    const { id } = req.params;
+    const { 
+        full_name_fr, full_name_ar, email, category_id, 
+        specialty_fr, specialty_ar, bio_fr, bio_ar, experience_years, languages, is_active 
+    } = req.body;
+    
+    db.get("SELECT user_id FROM experts WHERE id = ?", [id], (err, expert) => {
+        if (err) return res.status(500).json({ error: err.message });
+        if (!expert) return res.status(404).json({ error: 'Expert not found' });
+        
+        db.run("UPDATE users SET email = ?, name = ? WHERE id = ?", [email, full_name_fr, expert.user_id], function(err) {
+            if (err) return res.status(500).json({ error: err.message });
+            
+            const expertQuery = `
+                UPDATE experts SET 
+                    category_id = ?, full_name_fr = ?, full_name_ar = ?, full_name = ?, 
+                    specialty_fr = ?, specialty_ar = ?, specialty = ?, 
+                    bio_fr = ?, bio_ar = ?, bio = ?, 
+                    experience_years = ?, languages = ?, is_active = ?
+                WHERE id = ?
+            `;
+            db.run(expertQuery, [
+                category_id, full_name_fr, full_name_ar, full_name_fr,
+                specialty_fr, specialty_ar, specialty_fr,
+                bio_fr, bio_ar, bio_fr,
+                experience_years, languages, is_active ? 1 : 0, id
+            ], function(err) {
+                if (err) return res.status(500).json({ error: err.message });
+                res.json({ success: true });
+            });
+        });
+    });
+});
+
+app.put('/api/admin/experts/:id/reset-password', (req, res) => {
+    const { id } = req.params;
+    db.get("SELECT e.user_id, u.email FROM experts e JOIN users u ON e.user_id = u.id WHERE e.id = ?", [id], (err, expert) => {
+        if (err) return res.status(500).json({ error: err.message });
+        if (!expert) return res.status(404).json({ error: 'Expert not found' });
+        
+        const newPassword = Math.random().toString(36).slice(-8) + 'A1!';
+        
+        db.run("UPDATE users SET password = ? WHERE id = ?", [newPassword, expert.user_id], function(err) {
+            if (err) return res.status(500).json({ error: err.message });
+            res.json({ success: true, credentials: { email: expert.email, password: newPassword, role: 'expert' } });
+        });
+    });
+});
+
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });

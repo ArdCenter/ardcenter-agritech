@@ -8,9 +8,11 @@ const AdminLayout = () => {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
     const menuItems = [
-        { path: '/admin', icon: 'dashboard', label: 'Dashboard' },
-        { path: '/admin/orders', icon: 'shopping_cart', label: 'Commandes' },
-        { path: '/admin/products', icon: 'inventory_2', label: 'Produits' }
+        { path: '/admin', icon: 'dashboard', label: i18n.language === 'ar' ? 'لوحة التحكم' : 'Tableau de bord' },
+        { path: '/admin/orders', icon: 'shopping_cart', label: i18n.language === 'ar' ? 'الطلبات' : 'Commandes' },
+        { path: '/admin/products', icon: 'inventory_2', label: i18n.language === 'ar' ? 'المنتجات' : 'Produits' },
+        { path: '/admin/experts', icon: 'manage_accounts', label: i18n.language === 'ar' ? 'إدارة الخبراء' : 'Gestion des experts' },
+        { path: '/admin/expert-reports', icon: 'flag', label: i18n.language === 'ar' ? 'بلاغات الخبراء' : 'Signalements experts' }
     ];
 
     const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
@@ -76,7 +78,7 @@ const AdminLayout = () => {
                             className="flex items-center gap-4 px-4 py-3 rounded-xl font-bold text-primary hover:bg-primary/5 transition-all"
                         >
                             <span className="material-symbols-outlined">storefront</span>
-                            <span>Retour Boutique</span>
+                            <span>{i18n.language === 'ar' ? 'العودة للمتجر' : 'Retour Boutique'}</span>
                         </Link>
                     </div>
                 </nav>

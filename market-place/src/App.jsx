@@ -25,6 +25,15 @@ import AdminLayout from './components/Admin/AdminLayout';
 import AdminDashboard from './components/Admin/AdminDashboard';
 import AdminOrders from './components/Admin/AdminOrders';
 import AdminProducts from './components/Admin/AdminProducts';
+import AdminExpertReports from './components/Admin/AdminExpertReports';
+import AdminExperts from './components/Admin/AdminExperts';
+
+import ExpertService from './components/ExpertService';
+import ExpertsByCategory from './components/ExpertsByCategory';
+import ExpertProfile from './components/ExpertProfile';
+import MyExpertConsultations from './components/MyExpertConsultations';
+import ExpertChat from './components/ExpertChat';
+import ExpertDashboard from './components/Admin/ExpertDashboard';
 
 const AppContent = () => {
   const { i18n } = useTranslation();
@@ -58,12 +67,22 @@ const AppContent = () => {
         <Route path="/machine-rental/:id/booking" element={<MachineBooking />} />
         <Route path="/plant-disease-detection" element={<PlantDiseaseDetection />} />
         
+        {/* Expert Service Routes */}
+        <Route path="/experts" element={<ExpertService />} />
+        <Route path="/experts/category/:categoryId" element={<ExpertsByCategory />} />
+        <Route path="/experts/profile/:expertId" element={<ExpertProfile />} />
+        <Route path="/my-expert-consultations" element={<MyExpertConsultations />} />
+        <Route path="/expert-chat/:consultationId" element={<ExpertChat />} />
+        <Route path="/expert-dashboard" element={<ExpertDashboard />} />
+        
         {/* Admin Routes */}
         <Route element={<AdminRoute />}>
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<AdminDashboard />} />
             <Route path="orders" element={<AdminOrders />} />
             <Route path="products" element={<AdminProducts />} />
+            <Route path="expert-reports" element={<AdminExpertReports />} />
+            <Route path="experts" element={<AdminExperts />} />
           </Route>
         </Route>
       </Routes>
