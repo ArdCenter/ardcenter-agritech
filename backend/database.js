@@ -67,7 +67,7 @@ const db = {
         if (typeof arg === 'bigint' || (typeof arg === 'number' && Number.isInteger(arg))) {
           return { type: 'integer', value: String(arg) };
         }
-        if (typeof arg === 'number') return { type: 'float', value: String(arg) };
+        if (typeof arg === 'number') return { type: 'float', value: arg };
         if (arg === null) return { type: 'null' };
         return { type: 'text', value: String(arg) };
       });
@@ -100,7 +100,13 @@ const db = {
       const rows = (result.rows || []).map(row => {
         const obj = {};
         if (result.cols) {
-          result.cols.forEach((col, i) => obj[col.name] = row[i] ? row[i].value : null);
+          result.cols.forEach((col, i) => {
+            let val = row[i] ? row[i].value : null;
+            if (row[i] && (row[i].type === 'integer' || row[i].type === 'float')) {
+              val = Number(val);
+            }
+            obj[col.name] = val;
+          });
         }
         return obj;
       });
