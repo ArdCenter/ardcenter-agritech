@@ -321,6 +321,61 @@ const initDb = async function initDb() {
             FOREIGN KEY (product_id) REFERENCES products (id)
         )`);
 
+        await db.execute(`CREATE TABLE IF NOT EXISTS expert_categories (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            description TEXT,
+            icon TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )`);
+
+        await db.execute(`CREATE TABLE IF NOT EXISTS experts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
+            category_id INTEGER NOT NULL,
+            full_name TEXT NOT NULL,
+            specialty TEXT NOT NULL,
+            bio TEXT,
+            experience_years INTEGER DEFAULT 0,
+            rating REAL DEFAULT 0,
+            consultations_count INTEGER DEFAULT 0,
+            availability_status TEXT DEFAULT 'available',
+            languages TEXT,
+            profile_image TEXT,
+            is_active INTEGER DEFAULT 1,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(category_id) REFERENCES expert_categories(id)
+        )`);
+
+        await db.execute(`CREATE TABLE IF NOT EXISTS expert_consultations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            client_id INTEGER NOT NULL,
+            expert_id INTEGER NOT NULL,
+            category_id INTEGER NOT NULL,
+            status TEXT DEFAULT 'in_progress',
+            client_close_requested INTEGER DEFAULT 0,
+            expert_close_requested INTEGER DEFAULT 0,
+            closed_at TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(client_id) REFERENCES users(id),
+            FOREIGN KEY(expert_id) REFERENCES experts(id),
+            FOREIGN KEY(category_id) REFERENCES expert_categories(id)
+        )`);
+
+        await db.execute(`CREATE TABLE IF NOT EXISTS consultation_messages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            consultation_id INTEGER NOT NULL,
+            sender_id INTEGER NOT NULL,
+            sender_role TEXT NOT NULL,
+            message TEXT NOT NULL,
+            image TEXT,
+            is_read INTEGER DEFAULT 0,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(consultation_id) REFERENCES expert_consultations(id),
+            FOREIGN KEY(sender_id) REFERENCES users(id)
+        )`);
+
         // Seed data check
         const productsCheck = await db.execute('SELECT id FROM products LIMIT 1');
         if (productsCheck.rows.length === 0) {
@@ -375,6 +430,39 @@ const initDb = async function initDb() {
                 });
             }
         }
+        // Create Expert Reports table
+        await db.execute(`
+            CREATE TABLE IF NOT EXISTS expert_reports (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                consultation_id INTEGER NOT NULL,
+                expert_id INTEGER NOT NULL,
+                client_id INTEGER NOT NULL,
+                reason TEXT NOT NULL,
+                description TEXT,
+                image TEXT,
+                status TEXT DEFAULT 'pending',
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(consultation_id) REFERENCES expert_consultations(id),
+                FOREIGN KEY(expert_id) REFERENCES users(id),
+                FOREIGN KEY(client_id) REFERENCES users(id)
+            )
+        `);
+        
+        // Create Expert Reviews table
+        await db.execute(`
+            CREATE TABLE IF NOT EXISTS expert_reviews (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                consultation_id INTEGER NOT NULL,
+                expert_id INTEGER NOT NULL,
+                client_id INTEGER NOT NULL,
+                rating INTEGER NOT NULL,
+                comment TEXT,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(consultation_id) REFERENCES expert_consultations(id),
+                FOREIGN KEY(expert_id) REFERENCES experts(id),
+                FOREIGN KEY(client_id) REFERENCES users(id)
+            )
+        `);
         
         // Seed Admin User
         const adminCheck = await db.execute("SELECT id FROM users WHERE email = 'admin@injaz.ma' LIMIT 1");
@@ -384,6 +472,89 @@ const initDb = async function initDb() {
                 sql: 'INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)',
                 args: ['Admin Injaz', 'admin@injaz.ma', 'admin', 'admin']
             });
+        }
+
+        // Migration check for bilingual expert fields and consultation fields
+        try {
+            await db.execute(`ALTER TABLE expert_categories ADD COLUMN name_fr TEXT`).catch(() => {});
+            await db.execute(`ALTER TABLE expert_categories ADD COLUMN name_ar TEXT`).catch(() => {});
+            await db.execute(`ALTER TABLE expert_categories ADD COLUMN description_fr TEXT`).catch(() => {});
+            await db.execute(`ALTER TABLE expert_categories ADD COLUMN description_ar TEXT`).catch(() => {});
+            await db.execute(`ALTER TABLE expert_categories ADD COLUMN image TEXT`).catch(() => {});
+
+            await db.execute(`ALTER TABLE experts ADD COLUMN full_name_fr TEXT`).catch(() => {});
+            await db.execute(`ALTER TABLE experts ADD COLUMN full_name_ar TEXT`).catch(() => {});
+            await db.execute(`ALTER TABLE experts ADD COLUMN specialty_fr TEXT`).catch(() => {});
+            await db.execute(`ALTER TABLE experts ADD COLUMN specialty_ar TEXT`).catch(() => {});
+            await db.execute(`ALTER TABLE experts ADD COLUMN bio_fr TEXT`).catch(() => {});
+            await db.execute(`ALTER TABLE experts ADD COLUMN bio_ar TEXT`).catch(() => {});
+            
+            // Add columns for product recommendations safely
+            await db.execute("ALTER TABLE consultation_messages ADD COLUMN message_type TEXT DEFAULT 'text'").catch(() => {});
+            await db.execute("ALTER TABLE consultation_messages ADD COLUMN product_id INTEGER DEFAULT NULL").catch(() => {});
+            
+            // Add columns for ending consultation safely
+            await db.execute("ALTER TABLE expert_consultations ADD COLUMN client_close_requested INTEGER DEFAULT 0").catch(() => {});
+            await db.execute("ALTER TABLE expert_consultations ADD COLUMN expert_close_requested INTEGER DEFAULT 0").catch(() => {});
+            await db.execute("ALTER TABLE expert_consultations ADD COLUMN closed_at TEXT").catch(() => {});
+        } catch (e) {}
+
+        // Seed Expert Users (if not exist)
+        const expertUser1 = await db.execute("SELECT id FROM users WHERE email = 'expert.plantes@ardcenter.com'");
+        if (expertUser1.rows.length === 0) {
+            await db.execute({ sql: 'INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)', args: ['Dr. Ahmed Zahrani', 'expert.plantes@ardcenter.com', 'Expert123!', 'expert'] });
+            await db.execute({ sql: 'INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)', args: ['Youssef Benali', 'expert.irrigation@ardcenter.com', 'Expert123!', 'expert'] });
+            await db.execute({ sql: 'INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)', args: ['Sara Alaoui', 'expert.sols@ardcenter.com', 'Expert123!', 'expert'] });
+        }
+
+        // Seed Expert Categories and Experts
+        const categoriesCheck = await db.execute('SELECT id, name_fr FROM expert_categories LIMIT 1');
+        // Re-seed if no categories OR if the first category doesn't have name_fr populated
+        if (categoriesCheck.rows.length === 0 || categoriesCheck.rows[0].name_fr === null) {
+            console.log('Seeding/Updating expert categories and experts...');
+
+            // Clear to start fresh for the seed
+            await db.execute('DELETE FROM consultation_messages').catch(() => {});
+            await db.execute('DELETE FROM expert_consultations').catch(() => {});
+            await db.execute('DELETE FROM experts').catch(() => {});
+            await db.execute('DELETE FROM expert_categories').catch(() => {});
+
+            const categoriesSeed = [
+                { id: 1, name_ar: "أمراض النباتات", name_fr: "Maladies des plantes", desc_ar: "تشخيص وعلاج أمراض النباتات.", desc_fr: "Diagnostic et traitement des maladies des plantes.", icon: "PottedPlant", image: "/experts/cat_plant_disease_1777854693817.png" },
+                { id: 2, name_ar: "الري والسقي", name_fr: "Irrigation", desc_ar: "أنظمة وتقنيات الري الحديثة.", desc_fr: "Systèmes et techniques d'irrigation modernes.", icon: "Droplets", image: "/experts/cat_irrigation_1777854707332.png" },
+                { id: 3, name_ar: "التسميد والتربة", name_fr: "Sol et fertilisation", desc_ar: "تحليل التربة وبرامج التسميد.", desc_fr: "Analyse du sol et programmes de fertilisation.", icon: "Sprout", image: "/experts/cat_soil_1777854720547.png" },
+                { id: 4, name_ar: "الحشرات والآفات", name_fr: "Ravageurs et insectes", desc_ar: "مكافحة الحشرات والآفات الزراعية.", desc_fr: "Lutte contre les insectes et ravageurs agricoles.", icon: "Bug", image: "/experts/cat_pests_1777854843242.png" },
+                { id: 5, name_ar: "الأشجار المثمرة", name_fr: "Arbres fruitiers", desc_ar: "زراعة ورعاية الأشجار المثمرة.", desc_fr: "Culture et entretien des arbres fruitiers.", icon: "Trees", image: "/experts/cat_trees_1777854860124.png" },
+                { id: 6, name_ar: "الخضروات والمحاصيل", name_fr: "Légumes et cultures", desc_ar: "زراعة الخضروات والمحاصيل الحقلية.", desc_fr: "Culture de légumes et grandes cultures.", icon: "Wheat", image: "https://images.unsplash.com/photo-1598170845058-32b9d6a5da37?q=80&w=800&auto=format&fit=crop" },
+                { id: 7, name_ar: "الزراعة الذكية", name_fr: "Agriculture intelligente", desc_ar: "استخدام التكنولوجيا الحديثة في الزراعة.", desc_fr: "Utilisation des technologies modernes en agriculture.", icon: "Cpu", image: "https://images.unsplash.com/photo-1586771107445-d3af2e84d469?q=80&w=800&auto=format&fit=crop" }
+            ];
+            
+            for (const cat of categoriesSeed) {
+                await db.execute({
+                    sql: 'INSERT INTO expert_categories (id, name, description, icon, name_fr, name_ar, description_fr, description_ar, image) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                    args: [cat.id, cat.name_ar, cat.desc_ar, cat.icon, cat.name_fr, cat.name_ar, cat.desc_fr, cat.desc_ar, cat.image]
+                });
+            }
+
+            // Get user IDs
+            const u1 = await db.execute("SELECT id FROM users WHERE email = 'expert.plantes@ardcenter.com'");
+            const u2 = await db.execute("SELECT id FROM users WHERE email = 'expert.irrigation@ardcenter.com'");
+            const u3 = await db.execute("SELECT id FROM users WHERE email = 'expert.sols@ardcenter.com'");
+
+            const expertsSeed = [
+                { user_id: u1.rows[0]?.id || null, category_id: 1, full_name_ar: "د. أحمد الزهراني", full_name_fr: "Dr. Ahmed Zahrani", spec_ar: "خبير أمراض النباتات", spec_fr: "Expert en maladies des plantes", bio_ar: "مستعد لتقديم الاستشارة في مجال أمراض النباتات.", bio_fr: "Prêt à fournir des conseils dans le domaine des maladies des plantes.", experience_years: 12, rating: 4.9 },
+                { user_id: u2.rows[0]?.id || null, category_id: 2, full_name_ar: "م. يوسف بنعلي", full_name_fr: "Youssef Benali", spec_ar: "خبير الري والسقي", spec_fr: "Expert en irrigation", bio_ar: "مختص في أنظمة الري الحديثة.", bio_fr: "Spécialiste des systèmes d'irrigation modernes.", experience_years: 10, rating: 4.7 },
+                { user_id: u3.rows[0]?.id || null, category_id: 3, full_name_ar: "م. سارة العلوي", full_name_fr: "Sara Alaoui", spec_ar: "خبيرة التسميد والتربة", spec_fr: "Experte en sol et fertilisation", bio_ar: "خبيرة في تحسين جودة التربة.", bio_fr: "Experte en amélioration de la qualité des sols.", experience_years: 8, rating: 4.8 },
+                { user_id: null, category_id: 4, full_name_ar: "د. ليلى منصوري", full_name_fr: "Dr. Laila Mansouri", spec_ar: "خبيرة الآفات والحشرات", spec_fr: "Experte en ravageurs et insectes", bio_ar: "خبرة طويلة في مكافحة الآفات.", bio_fr: "Longue expérience dans la lutte antiparasitaire.", experience_years: 9, rating: 4.8 },
+                { user_id: null, category_id: 5, full_name_ar: "م. خالد الإدريسي", full_name_fr: "Khalid Idrissi", spec_ar: "خبير الأشجار المثمرة", spec_fr: "Expert en arbres fruitiers", bio_ar: "متخصص في رعاية وتطعيم الأشجار.", bio_fr: "Spécialiste de l'entretien et du greffage des arbres.", experience_years: 11, rating: 4.6 }
+            ];
+
+            for (const exp of expertsSeed) {
+                await db.execute({
+                    sql: 'INSERT INTO experts (user_id, category_id, full_name, specialty, bio, full_name_fr, full_name_ar, specialty_fr, specialty_ar, bio_fr, bio_ar, experience_years, rating) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                    args: [exp.user_id, exp.category_id, exp.full_name_ar, exp.spec_ar, exp.bio_ar, exp.full_name_fr, exp.full_name_ar, exp.spec_fr, exp.spec_ar, exp.bio_fr, exp.bio_ar, exp.experience_years, exp.rating]
+                });
+            }
         }
 
         // Seed Rental Specific Data check

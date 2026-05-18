@@ -224,7 +224,7 @@ const Home = () => {
               <div className="flex items-center justify-between mb-8">
                 <h3 className="text-2xl font-bold tracking-tight">{t('other_services')}</h3>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="group bg-surface rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col">
                   <div className="relative h-48">
                     <Link to="/plant-disease-detection" className="block w-full h-full">
@@ -242,19 +242,36 @@ const Home = () => {
                   </div>
                 </div>
 
-                <div className="group bg-surface rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all">
+                <div className="group bg-surface rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col">
                   <div className="relative h-48">
                     <Link to="/machine-rental" className="block w-full h-full">
                       <img className="w-full h-full object-contain transition-transform duration-500" alt="Machine Rental Service - tracteur et machines industrielles disponibles à la location" src="/machine_rental_service.png" />
                     </Link>
                     <div className="absolute top-4 left-4 bg-tertiary text-white text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-tighter">{t('location_label')}</div>
                   </div>
-                  <div className="p-6">
+                  <div className="p-6 flex-1 flex flex-col">
                     <h4 className="font-bold text-lg mb-1">{t('rental_machine')}</h4>
-                    <p className="text-sm text-on-surface-variant mb-4">{i18n.language === 'ar' ? 'كراء مرن للآلات الزراعية والصناعية.' : 'Flexible rental of agricultural and industrial machines.'}</p>
-                    <div className="flex items-center justify-between">
-                      <span className="text-primary font-bold"></span>
+                    <p className="text-sm text-on-surface-variant mb-4 flex-1">{i18n.language === 'ar' ? 'كراء مرن للآلات الزراعية والصناعية.' : 'Flexible rental of agricultural and industrial machines.'}</p>
+                    <div className="flex items-center justify-between mt-auto">
+                      <span className="text-primary font-bold uppercase text-xs tracking-widest"></span>
                       <Link to="/machine-rental" className="material-symbols-outlined text-primary p-2 bg-primary/10 rounded-full inline-block hover:scale-105 transition-transform">add_shopping_cart</Link>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="group bg-surface rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col">
+                  <div className="relative h-48">
+                    <Link to="/experts" className="block w-full h-full">
+                      <img className="w-full h-full object-cover transition-transform duration-500" alt="Expert consultation service" src="/experts/expert_service_home_1777854506061.png" />
+                    </Link>
+                    <div className="absolute top-4 left-4 bg-tertiary text-white text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-tighter">{i18n.language === 'ar' ? 'خدمة جديدة' : 'Nouveau'}</div>
+                  </div>
+                  <div className="p-6 flex-1 flex flex-col">
+                    <h4 className="font-bold text-lg mb-1">{i18n.language === 'ar' ? 'خدمة الخبراء الزراعيين' : 'Service des Experts'}</h4>
+                    <p className="text-sm text-on-surface-variant mb-4 flex-1">{i18n.language === 'ar' ? 'استشر خبراء زراعيين معتمدين واحصل على نصائح متخصصة.' : 'Consultez des experts certifiés et obtenez des conseils spécialisés.'}</p>
+                    <div className="flex items-center justify-between mt-auto">
+                      <span className="text-primary font-bold uppercase text-xs tracking-widest">{i18n.language === 'ar' ? 'تواصل الآن' : 'Contacter'}</span>
+                      <Link to="/experts" className="material-symbols-outlined text-primary p-2 bg-primary/10 rounded-full inline-block hover:scale-105 transition-transform">chat</Link>
                     </div>
                   </div>
                 </div>

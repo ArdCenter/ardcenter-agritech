@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useTranslation } from 'react-i18next';
@@ -8,7 +8,8 @@ import './navbar.css';
 const Navbar = () => {
   const { i18n, t } = useTranslation();
   const location = useLocation();
-  const { isLoggedIn, isAdmin, logout } = useAuth();
+  const navigate = useNavigate();
+  const { isLoggedIn, isAdmin, logout, user } = useAuth();
   const { cartCount } = useCart();
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
   const [shouldBounce, setShouldBounce] = React.useState(false);
@@ -25,6 +26,11 @@ const Navbar = () => {
   const toggleLanguage = () => {
     const nextLang = i18n.language === 'ar' ? 'fr' : 'ar';
     i18n.changeLanguage(nextLang);
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
   };
 
 
@@ -80,8 +86,14 @@ const Navbar = () => {
                 <>
                   <Link className={getLinkClass('/')} to="/">{t('nav_marketplace')}</Link>
                   <Link className={getLinkClass('/products')} to="/products">{t('nav_products')}</Link>
-                  <Link className={getLinkClass('/#services')} to="/#services">{t('nav_services')}</Link>
-                  <Link className={getLinkClass('/orders')} to="/orders">{t('nav_orders')}</Link>
+                  {user?.role === 'expert' ? (
+                    <Link className={getLinkClass('/expert-dashboard')} to="/expert-dashboard">{i18n.language === 'ar' ? 'لوحة الخبير' : 'Tableau expert'}</Link>
+                  ) : (
+                    <>
+                      <Link className={getLinkClass('/#services')} to="/#services">{t('nav_services')}</Link>
+                      <Link className={getLinkClass('/orders')} to="/orders">{t('nav_orders')}</Link>
+                    </>
+                  )}
                 </>
               )}
             </nav>
@@ -95,6 +107,11 @@ const Navbar = () => {
               {i18n.language === 'ar' ? 'FR' : 'AR'}
             </button>
             <button className="material-symbols-outlined p-2 hover:bg-stone-100 dark:hover:bg-stone-800 rounded-lg text-stone-600 hidden md:block">notifications</button>
+            {isLoggedIn && !isAdmin && user?.role === 'user' && (
+              <Link to="/my-expert-consultations" className="material-symbols-outlined p-2 hover:bg-stone-100 dark:hover:bg-stone-800 rounded-lg text-stone-600 hidden md:block" title={i18n.language === 'ar' ? 'محادثاتي مع الخبراء' : 'Mes conversations avec les experts'}>
+                forum
+              </Link>
+            )}
             {!isAdmin && (
               <Link 
                 to="/cart" 
@@ -110,7 +127,7 @@ const Navbar = () => {
             )}
             {isLoggedIn ? (
               <div className="flex items-center gap-3">
-                <button onClick={logout} className="p-2 hover:bg-stone-100 dark:hover:bg-stone-800 rounded-lg text-stone-400 material-symbols-outlined hidden md:block" title="Logout">logout</button>
+                <button onClick={handleLogout} className="p-2 hover:bg-stone-100 dark:hover:bg-stone-800 rounded-lg text-stone-400 material-symbols-outlined hidden md:block" title="Logout">logout</button>
                 <Link to="/profile" className="w-10 h-10 rounded-full overflow-hidden shadow-sm border border-outline/30 hover:border-primary transition-colors block">
                   <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuByagiouTGiogJYSIW4jm0BaWfE5y06fhTYicnyLCsbKi8ALaC1Gf44wdTcEEeZi6NfWJRCuMbm7Z7RBOy69OTjLbCo6Lb1JSdaKbmSxcvERBgwoUTcSUHXVJa9m3NWqzUUk_Xk1Ox0RqG2NMHw0oM5U1-69QIuRmh7onldE5yXJFHaXyzns0DiZSlq_lJTrWnrYiKUS2E7dwz8Yl6ruJcNppCFfA1MVzW0LnZmXGGPZ1drBLJ-bRZmRtRfXy9YtB929ibEJ5vMu9Q" alt="User Profile" className="w-full h-full object-cover" />
                 </Link>
@@ -163,14 +180,29 @@ const Navbar = () => {
                   <span className="material-symbols-outlined">storefront</span>
                   {t('nav_products')}
                 </Link>
-                <Link onClick={() => setIsMenuOpen(false)} className={getLinkClass('/#services', true)} to="/#services">
-                  <span className="material-symbols-outlined">agriculture</span>
-                  {t('nav_services')}
-                </Link>
-                <Link onClick={() => setIsMenuOpen(false)} className={getLinkClass('/orders', true)} to="/orders">
-                  <span className="material-symbols-outlined">history</span>
-                  {t('nav_orders')}
-                </Link>
+                {user?.role === 'expert' ? (
+                  <Link onClick={() => setIsMenuOpen(false)} className={getLinkClass('/expert-dashboard', true)} to="/expert-dashboard">
+                    <span className="material-symbols-outlined">dashboard</span>
+                    {i18n.language === 'ar' ? 'لوحة الخبير' : 'Tableau expert'}
+                  </Link>
+                ) : (
+                  <>
+                    <Link onClick={() => setIsMenuOpen(false)} className={getLinkClass('/#services', true)} to="/#services">
+                      <span className="material-symbols-outlined">agriculture</span>
+                      {t('nav_services')}
+                    </Link>
+                    <Link onClick={() => setIsMenuOpen(false)} className={getLinkClass('/orders', true)} to="/orders">
+                      <span className="material-symbols-outlined">history</span>
+                      {t('nav_orders')}
+                    </Link>
+                  </>
+                )}
+                {user?.role === 'user' && (
+                  <Link onClick={() => setIsMenuOpen(false)} className={getLinkClass('/my-expert-consultations', true)} to="/my-expert-consultations">
+                    <span className="material-symbols-outlined">forum</span>
+                    {i18n.language === 'ar' ? 'محادثاتي مع الخبراء' : 'Mes conversations avec les experts'}
+                  </Link>
+                )}
                 <Link onClick={() => setIsMenuOpen(false)} className={getLinkClass('/profile', true)} to="/profile">
                   <span className="material-symbols-outlined">person</span>
                   {t('nav_profile')}
@@ -182,7 +214,7 @@ const Navbar = () => {
           <div className="mt-auto absolute bottom-10 left-6 right-6 pt-6 border-t border-outline/10">
             {isLoggedIn ? (
               <button 
-                onClick={() => { logout(); setIsMenuOpen(false); }}
+                onClick={() => { handleLogout(); setIsMenuOpen(false); }}
                 className="w-full flex items-center gap-3 px-4 py-3 text-red-600 font-bold hover:bg-red-50 rounded-xl transition-colors"
               >
                 <span className="material-symbols-outlined">logout</span>
