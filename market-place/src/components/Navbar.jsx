@@ -98,6 +98,9 @@ const Navbar = () => {
                   <Link className={getLinkClass('/products')} to="/products">{t('nav_products')}</Link>
                   <Link className={getLinkClass('/#services')} to="/#services">{t('nav_services')}</Link>
                   <Link className={getLinkClass('/orders')} to="/orders">{t('nav_orders')}</Link>
+                  <Link className={getLinkClass('/devenir-expert')} to="/devenir-expert">
+                    {i18n.language === 'ar' ? 'أصبح خبيراً' : 'Devenir Expert'}
+                  </Link>
                 </>
               )}
             </nav>
@@ -205,6 +208,10 @@ const Navbar = () => {
                      <Link onClick={() => setIsMenuOpen(false)} className={getLinkClass('/orders', true)} to="/orders">
                        <span className="material-symbols-outlined">history</span>
                        {t('nav_orders')}
+                     </Link>
+                     <Link onClick={() => setIsMenuOpen(false)} className={getLinkClass('/devenir-expert', true)} to="/devenir-expert">
+                       <span className="material-symbols-outlined">workspace_premium</span>
+                       {i18n.language === 'ar' ? 'أصبح خبيراً' : 'Devenir Expert'}
                      </Link>
                    </>
                  )}

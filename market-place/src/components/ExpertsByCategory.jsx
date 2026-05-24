@@ -79,10 +79,19 @@ const ExpertsByCategory = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {experts.map(expert => (
+            {experts.sort((a, b) => (b.points || 0) - (a.points || 0)).map(expert => {
+              const getLevel = (pts) => {
+                  if (pts >= 700) return { name: 'Master', color: 'bg-purple-100 text-purple-700 border-purple-200', icon: 'workspace_premium' };
+                  if (pts >= 300) return { name: 'Elite', color: 'bg-blue-100 text-blue-700 border-blue-200', icon: 'military_tech' };
+                  if (pts >= 100) return { name: 'Pro', color: 'bg-emerald-100 text-emerald-700 border-emerald-200', icon: 'verified' };
+                  return { name: 'Novice', color: 'bg-stone-100 text-stone-700 border-stone-200', icon: 'star' };
+              };
+              const level = getLevel(expert.points || 0);
+
+              return (
               <div key={expert.id} className="bg-surface-container-low border border-stone-200 dark:border-stone-800 rounded-2xl p-6 flex flex-col relative shadow-sm hover:shadow-md transition-shadow">
                 <div className="flex items-start gap-4 mb-4">
-                  <div className="w-20 h-20 rounded-full bg-stone-200 overflow-hidden flex-shrink-0 flex items-center justify-center border-4 border-white shadow-sm">
+                  <div className="w-20 h-20 rounded-full bg-stone-200 overflow-hidden flex-shrink-0 flex items-center justify-center border-4 border-white shadow-sm relative">
                     {expert.profile_image ? (
                       <img src={expert.profile_image} alt={expert.full_name} className="w-full h-full object-cover" />
                     ) : (
@@ -90,11 +99,23 @@ const ExpertsByCategory = () => {
                     )}
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold text-on-surface">{i18n.language === 'ar' ? expert.full_name_ar : expert.full_name_fr}</h3>
-                    <p className="text-primary font-medium text-sm mb-1">{i18n.language === 'ar' ? expert.specialty_ar : expert.specialty_fr}</p>
+                    <h3 className="text-xl font-bold text-on-surface flex items-center gap-2">
+                        {i18n.language === 'ar' ? expert.full_name_ar : expert.full_name_fr}
+                        {level.name !== 'Novice' && (
+                            <span className="material-symbols-outlined text-[20px] filled text-blue-500" title={level.name}>verified</span>
+                        )}
+                    </h3>
+                    <p className="text-primary font-medium text-sm mb-2">{i18n.language === 'ar' ? expert.specialty_ar : expert.specialty_fr}</p>
+                    <div className="flex flex-wrap items-center gap-2 text-sm text-on-surface-variant mb-2">
+                        <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 border ${level.color}`}>
+                            <span className="material-symbols-outlined text-[12px]">{level.icon}</span>
+                            {level.name}
+                        </span>
+                    </div>
                     <div className="flex items-center gap-1 text-sm text-on-surface-variant">
                       <span className="material-symbols-outlined text-yellow-500 text-sm">star</span>
-                      <span className="font-bold">{expert.rating.toFixed(1)}</span>
+                      <span className="font-bold">{expert.rating ? expert.rating.toFixed(1) : '0.0'}</span>
+                      <span className="text-xs ml-1">({expert.reviews_count || 0})</span>
                       <span className="mx-1">•</span>
                       <span>{expert.experience_years} {i18n.language === 'ar' ? 'سنوات خبرة' : 'ans d\'expérience'}</span>
                     </div>
@@ -113,7 +134,8 @@ const ExpertsByCategory = () => {
                   {i18n.language === 'ar' ? 'تواصل معه' : 'Contacter l\'expert'}
                 </button>
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

@@ -11,6 +11,7 @@ const AdminExperts = () => {
     const [selectedExpertId, setSelectedExpertId] = useState(null);
     const [credentials, setCredentials] = useState(null);
     const [categories, setCategories] = useState([]);
+    const [filter, setFilter] = useState('all'); // 'all', 'active', 'unpaid', 'expired', 'top', 'points'
 
     const [formData, setFormData] = useState({
         full_name_fr: '',
@@ -158,6 +159,25 @@ const AdminExperts = () => {
 
     if (loading) return <div className="p-8">Loading...</div>;
 
+    const filteredExperts = experts.filter(exp => {
+        if (filter === 'all') return true;
+        if (filter === 'active') return exp.approval_status === 'active' && exp.is_active === 1;
+        if (filter === 'unpaid') return exp.approval_status === 'approved_waiting_payment';
+        if (filter === 'expired') return exp.approval_status === 'expired';
+        return true;
+    }).sort((a, b) => {
+        if (filter === 'top') return (b.rating || 0) - (a.rating || 0);
+        if (filter === 'points') return (b.points || 0) - (a.points || 0);
+        return new Date(b.created_at) - new Date(a.created_at);
+    });
+
+    const getLevel = (pts) => {
+        if (pts >= 700) return { name: 'Master', color: 'bg-purple-100 text-purple-700 border-purple-200', icon: 'workspace_premium' };
+        if (pts >= 300) return { name: 'Elite', color: 'bg-blue-100 text-blue-700 border-blue-200', icon: 'military_tech' };
+        if (pts >= 100) return { name: 'Pro', color: 'bg-emerald-100 text-emerald-700 border-emerald-200', icon: 'verified' };
+        return { name: 'Novice', color: 'bg-stone-100 text-stone-700 border-stone-200', icon: 'star' };
+    };
+
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
@@ -172,6 +192,14 @@ const AdminExperts = () => {
                     {isAr ? 'إضافة خبير' : 'Ajouter un expert'}
                 </button>
             </div>
+            <div className="flex flex-wrap gap-2 mb-4">
+                <button onClick={() => setFilter('all')} className={`px-4 py-2 rounded-full text-sm font-bold transition-colors ${filter === 'all' ? 'bg-stone-900 text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'}`}>Tous</button>
+                <button onClick={() => setFilter('active')} className={`px-4 py-2 rounded-full text-sm font-bold transition-colors ${filter === 'active' ? 'bg-green-600 text-white' : 'bg-green-50 text-green-700 hover:bg-green-100'}`}>Actifs</button>
+                <button onClick={() => setFilter('unpaid')} className={`px-4 py-2 rounded-full text-sm font-bold transition-colors ${filter === 'unpaid' ? 'bg-yellow-600 text-white' : 'bg-yellow-50 text-yellow-700 hover:bg-yellow-100'}`}>Non Payés</button>
+                <button onClick={() => setFilter('expired')} className={`px-4 py-2 rounded-full text-sm font-bold transition-colors ${filter === 'expired' ? 'bg-red-600 text-white' : 'bg-red-50 text-red-700 hover:bg-red-100'}`}>Expirés</button>
+                <button onClick={() => setFilter('top')} className={`px-4 py-2 rounded-full text-sm font-bold transition-colors ${filter === 'top' ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-700 hover:bg-blue-100'}`}>Meilleurs Experts</button>
+                <button onClick={() => setFilter('points')} className={`px-4 py-2 rounded-full text-sm font-bold transition-colors ${filter === 'points' ? 'bg-purple-600 text-white' : 'bg-purple-50 text-purple-700 hover:bg-purple-100'}`}>Plus de Points</button>
+            </div>
             
             <div className="bg-white dark:bg-stone-900 rounded-3xl border border-stone-200 dark:border-stone-800 overflow-hidden shadow-sm">
                 <div className="overflow-x-auto">
@@ -180,14 +208,22 @@ const AdminExperts = () => {
                             <tr className={isAr ? 'text-right' : 'text-left'}>
                                 <th className="p-4 font-bold text-sm text-stone-500">{isAr ? 'الخبير' : 'Expert'}</th>
                                 <th className="p-4 font-bold text-sm text-stone-500">{isAr ? 'التخصص' : 'Spécialité'}</th>
+                                <th className="p-4 font-bold text-sm text-stone-500">Points & Niveau</th>
+                                <th className="p-4 font-bold text-sm text-stone-500">Abonnement</th>
                                 <th className="p-4 font-bold text-sm text-stone-500">{isAr ? 'التقييم' : 'Note'}</th>
                                 <th className="p-4 font-bold text-sm text-stone-500">{isAr ? 'استشارات' : 'Consultations'}</th>
-                                <th className="p-4 font-bold text-sm text-stone-500">{isAr ? 'الحالة' : 'Statut'}</th>
                                 <th className={`p-4 font-bold text-sm text-stone-500 ${isAr ? 'text-left' : 'text-right'}`}>{isAr ? 'إجراءات' : 'Actions'}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-stone-200 dark:divide-stone-800">
-                            {experts.map(expert => (
+                            {filteredExperts.map(expert => {
+                                const level = getLevel(expert.points || 0);
+                                const isExpired = expert.approval_status === 'expired';
+                                const isUnpaid = expert.approval_status === 'approved_waiting_payment';
+                                const isActive = expert.approval_status === 'active';
+                                const isPending = expert.approval_status === 'pending_validation';
+                                
+                                return (
                                 <tr key={expert.id} className="hover:bg-stone-50 dark:hover:bg-stone-800/50">
                                     <td className="p-4">
                                         <div className="font-bold text-sm">{isAr ? expert.full_name_ar : expert.full_name_fr}</div>
@@ -197,18 +233,57 @@ const AdminExperts = () => {
                                         <div className="text-sm">{isAr ? expert.category_name_ar : expert.category_name_fr}</div>
                                         <div className="text-xs text-stone-500">{isAr ? expert.specialty_ar : expert.specialty_fr}</div>
                                     </td>
-                                    <td className="p-4 text-sm font-bold flex items-center gap-1">
-                                        <span className="material-symbols-outlined text-[16px] text-yellow-500 filled">star</span>
-                                        {expert.rating || '0.0'}
+                                    <td className="p-4">
+                                        <div className="flex items-center gap-2">
+                                            <span className="font-black text-stone-900">{expert.points || 0} pts</span>
+                                            <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 border ${level.color}`}>
+                                                <span className="material-symbols-outlined text-[12px]">{level.icon}</span>
+                                                {level.name}
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td className="p-4">
+                                        <div className="flex flex-col gap-1 items-start">
+                                            {isActive && (
+                                                <span className="px-2 py-1 bg-green-100 text-green-700 rounded-lg text-xs font-bold border border-green-200">
+                                                    {expert.subscription_end_date ? (
+                                                        isAr ? `نشط حتى ${new Date(expert.subscription_end_date).toLocaleDateString()}` 
+                                                             : `Actif jusqu'au ${new Date(expert.subscription_end_date).toLocaleDateString()}`
+                                                    ) : (
+                                                        isAr ? 'نشط' : 'Actif'
+                                                    )}
+                                                </span>
+                                            )}
+                                            {isExpired && (
+                                                <span className="px-2 py-1 bg-red-100 text-red-700 rounded-lg text-xs font-bold border border-red-200">
+                                                    {expert.subscription_end_date ? (
+                                                        isAr ? `منتهي منذ ${new Date(expert.subscription_end_date).toLocaleDateString()}`
+                                                             : `Expiré le ${new Date(expert.subscription_end_date).toLocaleDateString()}`
+                                                    ) : (
+                                                        isAr ? 'منتهي' : 'Expiré'
+                                                    )}
+                                                </span>
+                                            )}
+                                            {isUnpaid && (
+                                                <span className="px-2 py-1 bg-yellow-100 text-yellow-700 rounded-lg text-xs font-bold border border-yellow-200">
+                                                    Non Payé
+                                                </span>
+                                            )}
+                                            {isPending && (
+                                                <span className="px-2 py-1 bg-stone-100 text-stone-700 rounded-lg text-xs font-bold border border-stone-200">
+                                                    En attente
+                                                </span>
+                                            )}
+                                        </div>
+                                    </td>
+                                    <td className="p-4 text-sm font-bold flex flex-col justify-center gap-1">
+                                        <div className="flex items-center gap-1">
+                                            <span className="material-symbols-outlined text-[16px] text-yellow-500 filled">star</span>
+                                            {expert.rating ? expert.rating.toFixed(1) : '0.0'}
+                                        </div>
+                                        <span className="text-xs text-stone-500">{expert.reviews_count || 0} avis</span>
                                     </td>
                                     <td className="p-4 text-sm font-bold">{expert.consultations_count || 0}</td>
-                                    <td className="p-4">
-                                        <span className={`px-2 py-1 rounded-lg text-xs font-bold ${expert.is_active ? 'bg-green-100 text-green-600' : 'bg-stone-100 text-stone-600'}`}>
-                                            {expert.is_active 
-                                                ? (isAr ? 'نشط' : 'Actif') 
-                                                : (isAr ? 'غير نشط' : 'Inactif')}
-                                        </span>
-                                    </td>
                                     <td className={`p-4 ${isAr ? 'text-left' : 'text-right'} flex flex-wrap items-center justify-end gap-2`}>
                                         <button 
                                             onClick={() => handleEdit(expert)}
@@ -236,7 +311,8 @@ const AdminExperts = () => {
                                         </button>
                                     </td>
                                 </tr>
-                            ))}
+                                );
+                            })}
                         </tbody>
                     </table>
                 </div>

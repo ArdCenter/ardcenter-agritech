@@ -12,6 +12,7 @@ const AdminLayout = () => {
         { path: '/admin/orders', icon: 'shopping_cart', label: i18n.language === 'ar' ? 'الطلبات' : 'Commandes' },
         { path: '/admin/products', icon: 'inventory_2', label: i18n.language === 'ar' ? 'المنتجات' : 'Produits' },
         { path: '/admin/delivery', icon: 'local_shipping', label: i18n.language === 'ar' ? 'إدارة الموزعين' : 'Gestion des livreurs' },
+        { path: '/admin/expert-applications', icon: 'person_add', label: i18n.language === 'ar' ? 'طلبات الانضمام' : 'Candidatures Experts' },
         { path: '/admin/experts', icon: 'manage_accounts', label: i18n.language === 'ar' ? 'إدارة الخبراء' : 'Gestion des experts' },
         { path: '/admin/expert-reports', icon: 'flag', label: i18n.language === 'ar' ? 'بلاغات الخبراء' : 'Signalements experts' }
     ];

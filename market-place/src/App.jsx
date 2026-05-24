@@ -36,6 +36,10 @@ import ExpertProfile from './components/ExpertProfile';
 import MyExpertConsultations from './components/MyExpertConsultations';
 import ExpertChat from './components/ExpertChat';
 import ExpertDashboard from './components/Admin/ExpertDashboard';
+import ExpertLanding from './components/ExpertLanding';
+import ExpertRegister from './components/ExpertRegister';
+import ExpertSubscription from './components/ExpertSubscription';
+import AdminExpertApplications from './components/Admin/AdminExpertApplications';
 
 const AppContent = () => {
   const { i18n } = useTranslation();
@@ -57,6 +61,23 @@ const AppContent = () => {
   if (user?.role === 'driver' && location.pathname !== '/delivery-dashboard' && location.pathname !== '/profile') {
     return <Navigate to="/delivery-dashboard" replace />;
   }
+  
+  // Define expert-only routes
+  const expertOnlyRoutes = ['/expert-dashboard', '/my-expert-consultations', '/expert-chat'];
+  const isExpertRoute = expertOnlyRoutes.some(route => location.pathname.startsWith(route));
+
+  // Protect Expert Routes based on validation status
+  if (user?.role === 'expert' && user?.approval_status === 'pending_validation' && isExpertRoute) {
+      // Block them from expert dashboards and features
+      return <Navigate to="/profile" replace />;
+  }
+
+  const needsSubscription = user?.role === 'expert' && 
+                           (user?.approval_status === 'approved_waiting_payment' || user?.approval_status === 'expired');
+                           
+  if (needsSubscription && isExpertRoute) {
+      return <Navigate to="/expert-subscription" replace />;
+  }
 
   return (
     <>
@@ -75,6 +96,11 @@ const AppContent = () => {
         <Route path="/machine-rental/:id/booking" element={<MachineBooking />} />
         <Route path="/plant-disease-detection" element={<PlantDiseaseDetection />} />
         
+        {/* Expert Onboarding Routes */}
+        <Route path="/devenir-expert" element={<ExpertLanding />} />
+        <Route path="/expert-register" element={<ExpertRegister />} />
+        <Route path="/expert-subscription" element={<ExpertSubscription />} />
+
         {/* Expert Service Routes */}
         <Route path="/experts" element={<ExpertService />} />
         <Route path="/experts/category/:categoryId" element={<ExpertsByCategory />} />
@@ -92,6 +118,7 @@ const AppContent = () => {
             <Route path="products" element={<AdminProducts />} />
             <Route path="expert-reports" element={<AdminExpertReports />} />
             <Route path="experts" element={<AdminExperts />} />
+            <Route path="expert-applications" element={<AdminExpertApplications />} />
             <Route path="delivery" element={<AdminDelivery />} />
           </Route>
         </Route>
