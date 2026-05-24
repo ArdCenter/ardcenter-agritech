@@ -82,18 +82,22 @@ const Navbar = () => {
                   <Link className={getLinkClass('/admin/orders')} to="/admin/orders">{t('nav_orders')}</Link>
                   <Link className={getLinkClass('/admin/products')} to="/admin/products">{t('nav_products')}</Link>
                 </>
+              ) : user?.role === 'driver' ? (
+                <>
+                  <Link className={getLinkClass('/delivery-dashboard')} to="/delivery-dashboard">{i18n.language === 'ar' ? 'لوحة الموزع' : 'Tableau Livreur'}</Link>
+                </>
+              ) : user?.role === 'expert' ? (
+                <>
+                  <Link className={getLinkClass('/')} to="/">{t('nav_marketplace')}</Link>
+                  <Link className={getLinkClass('/products')} to="/products">{t('nav_products')}</Link>
+                  <Link className={getLinkClass('/expert-dashboard')} to="/expert-dashboard">{i18n.language === 'ar' ? 'لوحة الخبير' : 'Tableau expert'}</Link>
+                </>
               ) : (
                 <>
                   <Link className={getLinkClass('/')} to="/">{t('nav_marketplace')}</Link>
                   <Link className={getLinkClass('/products')} to="/products">{t('nav_products')}</Link>
-                  {user?.role === 'expert' ? (
-                    <Link className={getLinkClass('/expert-dashboard')} to="/expert-dashboard">{i18n.language === 'ar' ? 'لوحة الخبير' : 'Tableau expert'}</Link>
-                  ) : (
-                    <>
-                      <Link className={getLinkClass('/#services')} to="/#services">{t('nav_services')}</Link>
-                      <Link className={getLinkClass('/orders')} to="/orders">{t('nav_orders')}</Link>
-                    </>
-                  )}
+                  <Link className={getLinkClass('/#services')} to="/#services">{t('nav_services')}</Link>
+                  <Link className={getLinkClass('/orders')} to="/orders">{t('nav_orders')}</Link>
                 </>
               )}
             </nav>
@@ -106,13 +110,13 @@ const Navbar = () => {
               <span className="material-symbols-outlined text-sm">language</span>
               {i18n.language === 'ar' ? 'FR' : 'AR'}
             </button>
-            <button className="material-symbols-outlined p-2 hover:bg-stone-100 dark:hover:bg-stone-800 rounded-lg text-stone-600 hidden md:block">notifications</button>
+            {user?.role !== 'driver' && <button className="material-symbols-outlined p-2 hover:bg-stone-100 dark:hover:bg-stone-800 rounded-lg text-stone-600 hidden md:block">notifications</button>}
             {isLoggedIn && !isAdmin && user?.role === 'user' && (
               <Link to="/my-expert-consultations" className="material-symbols-outlined p-2 hover:bg-stone-100 dark:hover:bg-stone-800 rounded-lg text-stone-600 hidden md:block" title={i18n.language === 'ar' ? 'محادثاتي مع الخبراء' : 'Mes conversations avec les experts'}>
                 forum
               </Link>
             )}
-            {!isAdmin && (
+            {!isAdmin && user?.role !== 'driver' && (
               <Link 
                 to="/cart" 
                 className={`relative p-2 hover:bg-stone-100 dark:hover:bg-stone-800 rounded-lg text-stone-600 transition-all ${shouldBounce ? 'cart-bounce' : ''}`}
@@ -170,6 +174,13 @@ const Navbar = () => {
                   {t('nav_products')}
                 </Link>
                </>
+            ) : user?.role === 'driver' ? (
+               <>
+                 <Link onClick={() => setIsMenuOpen(false)} className={getLinkClass('/delivery-dashboard', true)} to="/delivery-dashboard">
+                   <span className="material-symbols-outlined">local_shipping</span>
+                   {i18n.language === 'ar' ? 'لوحة الموزع' : 'Tableau Livreur'}
+                 </Link>
+               </>
             ) : (
               <>
                 <Link onClick={() => setIsMenuOpen(false)} className={getLinkClass('/', true)} to="/">
@@ -180,23 +191,23 @@ const Navbar = () => {
                   <span className="material-symbols-outlined">storefront</span>
                   {t('nav_products')}
                 </Link>
-                {user?.role === 'expert' ? (
-                  <Link onClick={() => setIsMenuOpen(false)} className={getLinkClass('/expert-dashboard', true)} to="/expert-dashboard">
-                    <span className="material-symbols-outlined">dashboard</span>
-                    {i18n.language === 'ar' ? 'لوحة الخبير' : 'Tableau expert'}
-                  </Link>
-                ) : (
-                  <>
-                    <Link onClick={() => setIsMenuOpen(false)} className={getLinkClass('/#services', true)} to="/#services">
-                      <span className="material-symbols-outlined">agriculture</span>
-                      {t('nav_services')}
-                    </Link>
-                    <Link onClick={() => setIsMenuOpen(false)} className={getLinkClass('/orders', true)} to="/orders">
-                      <span className="material-symbols-outlined">history</span>
-                      {t('nav_orders')}
-                    </Link>
-                  </>
-                )}
+                 {user?.role === 'expert' ? (
+                   <Link onClick={() => setIsMenuOpen(false)} className={getLinkClass('/expert-dashboard', true)} to="/expert-dashboard">
+                     <span className="material-symbols-outlined">dashboard</span>
+                     {i18n.language === 'ar' ? 'لوحة الخبير' : 'Tableau expert'}
+                   </Link>
+                 ) : (
+                   <>
+                     <Link onClick={() => setIsMenuOpen(false)} className={getLinkClass('/#services', true)} to="/#services">
+                       <span className="material-symbols-outlined">agriculture</span>
+                       {t('nav_services')}
+                     </Link>
+                     <Link onClick={() => setIsMenuOpen(false)} className={getLinkClass('/orders', true)} to="/orders">
+                       <span className="material-symbols-outlined">history</span>
+                       {t('nav_orders')}
+                     </Link>
+                   </>
+                 )}
                 {user?.role === 'user' && (
                   <Link onClick={() => setIsMenuOpen(false)} className={getLinkClass('/my-expert-consultations', true)} to="/my-expert-consultations">
                     <span className="material-symbols-outlined">forum</span>

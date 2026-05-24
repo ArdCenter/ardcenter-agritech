@@ -34,6 +34,8 @@ const Login = () => {
         navigate('/admin');
       } else if (data.role === 'expert') {
         navigate('/expert-dashboard');
+      } else if (data.role === 'driver') {
+        navigate('/delivery-dashboard');
       } else {
         navigate('/products');
       }

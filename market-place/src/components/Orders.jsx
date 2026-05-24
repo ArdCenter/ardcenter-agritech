@@ -259,10 +259,6 @@ const Orders = () => {
                     <span>{t('total')}</span>
                     <span>{selectedOrder.amount}</span>
                   </div>
-                  <div className="flex justify-between text-stone-500">
-                    <span>{t('shipping')}</span>
-                    <span className="text-green-600 font-bold uppercase text-xs font-black">{i18n.language === 'ar' ? 'مجاني' : 'Gratuit'}</span>
-                  </div>
                   <div className="pt-4 border-t-2 border-primary/10 flex justify-between items-center">
                     <div>
                       <p className="text-[10px] text-stone-400 font-black uppercase tracking-widest">{t('cash_on_delivery')}</p>

@@ -27,6 +27,8 @@ import AdminOrders from './components/Admin/AdminOrders';
 import AdminProducts from './components/Admin/AdminProducts';
 import AdminExpertReports from './components/Admin/AdminExpertReports';
 import AdminExperts from './components/Admin/AdminExperts';
+import AdminDelivery from './components/Admin/AdminDelivery';
+import DeliveryDashboard from './components/DeliveryDashboard';
 
 import ExpertService from './components/ExpertService';
 import ExpertsByCategory from './components/ExpertsByCategory';
@@ -48,6 +50,12 @@ const AppContent = () => {
   // Redirect admin to /admin if they try to access a public route
   if (isAdmin && !location.pathname.startsWith('/admin')) {
     return <Navigate to="/admin" replace />;
+  }
+
+  // Redirect driver to /delivery-dashboard if they try to access other pages
+  const { user } = useAuth();
+  if (user?.role === 'driver' && location.pathname !== '/delivery-dashboard' && location.pathname !== '/profile') {
+    return <Navigate to="/delivery-dashboard" replace />;
   }
 
   return (
@@ -74,6 +82,7 @@ const AppContent = () => {
         <Route path="/my-expert-consultations" element={<MyExpertConsultations />} />
         <Route path="/expert-chat/:consultationId" element={<ExpertChat />} />
         <Route path="/expert-dashboard" element={<ExpertDashboard />} />
+        <Route path="/delivery-dashboard" element={<DeliveryDashboard />} />
         
         {/* Admin Routes */}
         <Route element={<AdminRoute />}>
@@ -83,6 +92,7 @@ const AppContent = () => {
             <Route path="products" element={<AdminProducts />} />
             <Route path="expert-reports" element={<AdminExpertReports />} />
             <Route path="experts" element={<AdminExperts />} />
+            <Route path="delivery" element={<AdminDelivery />} />
           </Route>
         </Route>
       </Routes>

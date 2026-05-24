@@ -469,6 +469,40 @@ const initDb = async function initDb() {
                 FOREIGN KEY(client_id) REFERENCES users(id)
             )
         `);
+
+        // Create Delivery Persons table
+        await db.execute(`
+            CREATE TABLE IF NOT EXISTS delivery_persons (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER UNIQUE,
+                name TEXT NOT NULL,
+                phone TEXT,
+                vehicle TEXT,
+                gps_position TEXT,
+                availability TEXT DEFAULT 'disponible',
+                delivery_zone TEXT,
+                status TEXT DEFAULT 'libre',
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE SET NULL
+            )
+        `);
+
+        // Seed Delivery Persons
+        const deliveryCheck = await db.execute('SELECT id FROM delivery_persons LIMIT 1');
+        if (deliveryCheck.rows.length === 0) {
+            console.log('Seeding initial delivery persons...');
+            const deliverySeed = [
+                { name: "Rachid El Alami", phone: "+212 612-345678", vehicle: "Moto (Yamaha TMAX)", gps_position: "32.2994, -9.2372", availability: "disponible", delivery_zone: "Safi Center", status: "libre" },
+                { name: "Youssef Ait Benhaddou", phone: "+212 698-765432", vehicle: "Camionnette (Renault Kangoo)", gps_position: "33.9716, -6.8498", availability: "disponible", delivery_zone: "Rabat Agdal", status: "libre" },
+                { name: "Mehdi Tazi", phone: "+212 655-112233", vehicle: "Moto (Honda SH)", gps_position: "33.5892, -7.6042", availability: "disponible", delivery_zone: "Casablanca Ain Diab", status: "libre" }
+            ];
+            for (const d of deliverySeed) {
+                await db.execute({
+                    sql: 'INSERT INTO delivery_persons (name, phone, vehicle, gps_position, availability, delivery_zone, status) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                    args: [d.name, d.phone, d.vehicle, d.gps_position, d.availability, d.delivery_zone, d.status]
+                });
+            }
+        }
         
         // Seed Admin User
         const adminCheck = await db.execute("SELECT id FROM users WHERE email = 'admin@injaz.ma' LIMIT 1");

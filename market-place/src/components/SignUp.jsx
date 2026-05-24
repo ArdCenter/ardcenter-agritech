@@ -109,6 +109,14 @@ const SignUp = () => {
                 </div>
               </div>
 
+              <div className="space-y-2">
+                <label className="block text-[14px] font-semibold text-[#40493d] ml-1" htmlFor="confirm_password">{t('confirm_password')}</label>
+                <div className="relative">
+                  <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-[#707a6c]">lock</span>
+                  <input required value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="w-full pl-12 pr-4 py-3.5 rounded-xl bg-[#e8e8e3] border-none focus:ring-2 focus:ring-[#32602c] text-[#1a1c19] placeholder-[#a0aa9c] outline-none transition-all tracking-widest text-lg" id="confirm_password" placeholder="••••••••" type="password" />
+                </div>
+              </div>
+
               <button className="w-full bg-[#2E7D32] hover:bg-[#4a7942] text-white font-bold py-4 px-8 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 active:scale-[0.98] flex items-center justify-center space-x-2" type="submit">
                 <span>{t('signup_title')}</span>
                 <span className={`material-symbols-outlined ${i18n.language === 'ar' ? 'rotate-180' : ''}`}>arrow_forward</span>

@@ -18,9 +18,21 @@ const AdminOrders = () => {
     const [orderSearchTerm, setOrderSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('All');
 
+    const [deliveryPersons, setDeliveryPersons] = useState([]);
+
     useEffect(() => {
         fetchOrders();
+        fetchDeliveryPersons();
     }, []);
+
+    const fetchDeliveryPersons = () => {
+        fetch(`${import.meta.env.VITE_API_URL}/api/delivery-persons`)
+            .then(res => res.json())
+            .then(data => {
+                setDeliveryPersons(data || []);
+            })
+            .catch(err => console.error("Error fetching delivery persons:", err));
+    };
 
     const filteredOrders = orders.filter(order => {
         const matchesSearch = 
@@ -54,8 +66,12 @@ const AdminOrders = () => {
             });
             if (response.ok) {
                 fetchOrders(); // Refresh list
+                fetchDeliveryPersons(); // Refresh delivery persons to reflect status changes
                 if (selectedOrder && selectedOrder.id === orderId) {
                     setSelectedOrder({ ...selectedOrder, ...updates });
+                }
+                if (orderDetails && orderDetails.id === orderId) {
+                    setOrderDetails({ ...orderDetails, ...updates });
                 }
             }
         } catch (err) {
@@ -68,6 +84,7 @@ const AdminOrders = () => {
     const openOrderDetails = async (orderNum) => {
         setIsDetailsOpen(true);
         setIsDetailsLoading(true);
+        fetchDeliveryPersons(); // Fetch latest driver statuses
         try {
             const response = await fetch(`${import.meta.env.VITE_API_URL}/api/orders/details/${encodeURIComponent(orderNum)}`);
             if (response.ok) {
@@ -379,19 +396,24 @@ const AdminOrders = () => {
                                                     </div>
                                                     <div>
                                                         <label className="text-[10px] font-black uppercase tracking-widest text-stone-400 block mb-1">Livreur assigné</label>
-                                                        <div className="flex gap-2">
-                                                            <input 
-                                                                type="text" 
-                                                                placeholder="Nom du livreur..."
-                                                                defaultValue={orderDetails.assigned_driver || ''}
-                                                                onBlur={(e) => {
-                                                                    if (e.target.value !== orderDetails.assigned_driver) {
-                                                                        updateOrderStatus(orderDetails.id, { assigned_driver: e.target.value });
-                                                                    }
-                                                                }}
-                                                                className="w-full bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-primary"
-                                                            />
-                                                        </div>
+                                                        <select 
+                                                            value={orderDetails.assigned_driver || ''}
+                                                            onChange={(e) => {
+                                                                const newDriver = e.target.value;
+                                                                updateOrderStatus(orderDetails.id, { assigned_driver: newDriver });
+                                                            }}
+                                                            className="w-full bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-lg px-3 py-2 text-sm outline-none focus:ring-1 focus:ring-primary font-bold"
+                                                        >
+                                                            <option value="">-- Non assigné --</option>
+                                                            {deliveryPersons
+                                                                .filter(p => p.availability === 'disponible' || p.name === orderDetails.assigned_driver)
+                                                                .map(p => (
+                                                                    <option key={p.id} value={p.name}>
+                                                                        {p.name} ({p.vehicle} - {p.delivery_zone}) {p.status === 'occupé' ? '[Occupé]' : ''}
+                                                                    </option>
+                                                                ))
+                                                            }
+                                                        </select>
                                                     </div>
                                                 </div>
                                             </div>

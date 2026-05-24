@@ -36,8 +36,23 @@ const Checkout = () => {
     window.scrollTo(0, 0);
   }, []);
 
+  const getShippingFee = (city, total) => {
+    if (cartItems.length === 0) return 0;
+    switch(city) {
+      case 'Safi': return 50;
+      case 'Essaouira': 
+      case 'Youssoufia': return 90;
+      case 'Marrakech':
+      case 'Chichaoua':
+      case 'Benguerir':
+      case 'El Kelaa des Sraghna': return 150;
+      default: return 0; // No city selected yet
+    }
+  };
+
+  const shippingFee = getShippingFee(address.city, cartTotal);
   const tva = Math.round(cartTotal * 0.2);
-  const totalWithTva = cartTotal + tva + (cartItems.length > 0 ? 245 : 0);
+  const totalWithTva = cartTotal + tva + shippingFee;
 
   const handleConfirmOrder = async (e) => {
     e.preventDefault();
@@ -163,13 +178,7 @@ const Checkout = () => {
                   >
                     <option value="" disabled>{i18n.language === 'ar' ? 'اختر المدينة' : 'Choisir une ville'}</option>
                     {[
-                      'Agadir', 'Ahfir', 'Ait Melloul', 'Al Hoceima', 'Asilah', 'Azrou', 'Beni Mellal', 'Benslimane', 'Berkane', 'Berrechid', 
-                      'Boujdour', 'Boulemane', 'Casablanca', 'Chefchaouen', 'Dakhla', 'El Jadida', 'El Kelaa des Sraghna', 'Errachidia', 
-                      'Essaouira', 'Fès', 'Figuig', 'Fquih Ben Salah', 'Guelmim', 'Guercif', 'Ifrane', 'Inezgane', 'Jerada', 'Kenitra', 
-                      'Khemisset', 'Khenifra', 'Khouribga', 'Ksar El Kebir', 'Laayoune', 'Larache', 'Marrakech', 'Martil', 'Meknès', 
-                      'Midelt', 'Mohammédia', 'Nador', 'Ouarzazate', 'Ouezzane', 'Oujda', 'Rabat', 'Safi', 'Saidia', 'Salé', 'Sefrou', 
-                      'Settat', 'Sidi Bennour', 'Sidi Ifni', 'Sidi Kacem', 'Sidi Slimane', 'Skhirat', 'Tanger', 'Tan-Tan', 'Taounate', 
-                      'Taourirt', 'Taroudant', 'Taza', 'Témara', 'Tétouan', 'Tinghir', 'Tiznit', 'Youssoufia', 'Zagora'
+                      'Safi', 'Marrakech', 'Essaouira', 'Youssoufia', 'Chichaoua', 'Benguerir', 'El Kelaa des Sraghna'
                     ].map(city => (
                       <option key={city} value={city}>{city}</option>
                     ))}
@@ -347,7 +356,9 @@ const Checkout = () => {
                   </div>
                   <div className="flex justify-between text-sm text-stone-600 dark:text-stone-400 font-medium">
                     <span>{t('shipping')}</span>
-                    <span className="font-bold text-stone-900 dark:text-stone-50">245 {t('currency')}</span>
+                    <span className="font-bold text-stone-900 dark:text-stone-50">
+                      {address.city ? `${shippingFee} ${t('currency')}` : (i18n.language === 'ar' ? 'اختر مدينة' : 'Choisissez une ville')}
+                    </span>
                   </div>
                   <div className="flex justify-between text-sm text-stone-600 dark:text-stone-400 font-medium">
                     <span>{i18n.language === 'ar' ? 'الضريبة (20%)' : 'TVA (20%)'}</span>

@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import Footer from './Footer';
 
 const Cart = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { cartItems, isLoading, updateQuantity, removeFromCart, cartTotal } = useCart();
 
   // Ensure we start at the top of the page when navigating to Cart
@@ -14,7 +14,7 @@ const Cart = () => {
   }, []);
 
   const tva = Math.round(cartTotal * 0.2);
-  const totalWithTva = cartTotal + tva + (cartItems.length > 0 ? 125 : 0);
+  const totalWithTva = cartTotal + tva; // Delivery added at checkout
 
   return (
     <div className="bg-surface text-on-surface pb-32">
@@ -45,7 +45,7 @@ const Cart = () => {
                     <img 
                       alt={item.name} 
                       className="w-full h-full object-cover grayscale-[20%] group-hover:grayscale-0 transition-all duration-500" 
-                      src={item.image?.startsWith('http') ? item.image : `${import.meta.env.VITE_API_URL || ''}${item.image?.startsWith('/') ? '' : '/'}${item.image}`} 
+                      src={item.image?.startsWith('data:') || item.image?.startsWith('http') ? item.image : `${import.meta.env.VITE_API_URL || ''}${item.image?.startsWith('/') ? '' : '/'}${item.image}`} 
                     />
                   </div>
                   <div className="flex-1 flex flex-col justify-between">
@@ -104,7 +104,9 @@ const Cart = () => {
                 </div>
                 <div className="flex justify-between items-center text-stone-600 dark:text-stone-400">
                   <span className="font-medium">{t('shipping')}</span>
-                  <span className="font-bold text-stone-900 dark:text-stone-50">{cartItems.length > 0 ? "125 DH" : "0 DH"}</span>
+                  <span className="font-bold text-stone-900 dark:text-stone-50 text-sm">
+                    {cartItems.length > 0 ? (i18n.language === 'ar' ? 'يُحسب عند الدفع' : 'Calculé à la caisse') : "0 DH"}
+                  </span>
                 </div>
                 <div className="flex justify-between items-center text-stone-600 dark:text-stone-400 pb-6">
                   <span className="font-medium">Taxes (TVA 20%)</span>

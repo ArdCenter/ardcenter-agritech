@@ -1,7 +1,7 @@
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 
-const REMOTE_API_URL = "https://marketplace-cs1z.onrender.com";
+const REMOTE_API_URL = "https://ardcenter-agritech.onrender.com";
 
 const dbPath = path.resolve(__dirname, 'market.sqlite');
 const db = new sqlite3.Database(dbPath, (err) => {
@@ -13,7 +13,7 @@ const db = new sqlite3.Database(dbPath, (err) => {
 });
 
 async function migrate() {
-    db.all('SELECT * FROM products', [], async (err, rows) => {
+    db.all('SELECT * FROM products WHERE is_rental = 1', [], async (err, rows) => {
         if (err) {
             console.error('Erreur lors de la récupération des produits locaux:', err);
             return;

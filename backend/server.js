@@ -470,7 +470,7 @@ app.delete('/api/cart/user/:userId', (req, res) => {
 // Get all orders (Admin)
 app.get('/api/admin/orders', (req, res) => {
     const query = `
-        SELECT o.*, u.name as user_name, u.email as user_email 
+        SELECT o.*, u.name as user_name, u.email as user_email, u.phone as user_phone 
         FROM orders o
         JOIN users u ON o.user_id = u.id
         ORDER BY o.id DESC
@@ -486,6 +486,20 @@ app.put('/api/admin/orders/:id', (req, res) => {
     const { id } = req.params;
     const { delivery_status, payment_status, estimated_delivery, assigned_driver, cancellation_reason } = req.body;
     
+    // Automatic driver status release if order completed/cancelled
+    if (delivery_status === 'Livré' || delivery_status === 'Annulée') {
+        db.get('SELECT assigned_driver FROM orders WHERE id = ?', [id], (err, row) => {
+            if (row && row.assigned_driver) {
+                db.run("UPDATE delivery_persons SET status = 'libre' WHERE name = ?", [row.assigned_driver]);
+            }
+        });
+    }
+
+    // Automatic driver status marked as occupied when assigned
+    if (assigned_driver) {
+        db.run("UPDATE delivery_persons SET status = 'occupé' WHERE name = ?", [assigned_driver]);
+    }
+
     let query = 'UPDATE orders SET ';
     let params = [];
     let updates = [];
@@ -560,6 +574,80 @@ app.get('/api/admin/stats', (req, res) => {
                 res.json(results);
             }
         });
+    });
+});
+// DELIVERY PERSONNEL LOGISTICS ROUTES
+
+// Retrieve all delivery personnel
+app.get('/api/delivery-persons', (req, res) => {
+    db.all('SELECT * FROM delivery_persons ORDER BY id DESC', [], (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(rows || []);
+    });
+});
+
+// Create a new delivery person
+app.post('/api/delivery-persons', (req, res) => {
+    const { name, email, password, phone, vehicle, gps_position, availability, delivery_zone, status } = req.body;
+    if (!name || !email || !password) return res.status(400).json({ error: 'Name, email and password are required' });
+    
+    // First create the user account for the driver
+    db.run('INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)', [name, email, password, 'driver'], function(err) {
+        if (err) {
+            if (err.message.includes('UNIQUE constraint failed')) {
+                return res.status(400).json({ error: 'Un compte avec cet email existe déjà.' });
+            }
+            return res.status(500).json({ error: err.message });
+        }
+        
+        const userId = this.lastID;
+        
+        // Then insert the delivery person data
+        db.run(
+            'INSERT INTO delivery_persons (user_id, name, phone, vehicle, gps_position, availability, delivery_zone, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+            [userId, name, phone || '', vehicle || '', gps_position || '', availability || 'disponible', delivery_zone || '', status || 'libre'],
+            function(err2) {
+                if (err2) return res.status(500).json({ error: err2.message });
+                res.json({ id: this.lastID, user_id: userId, name, email, phone, vehicle, gps_position, availability, delivery_zone, status });
+            }
+        );
+    });
+});
+
+// Update a delivery person
+app.put('/api/delivery-persons/:id', (req, res) => {
+    const { id } = req.params;
+    const { name, phone, vehicle, gps_position, availability, delivery_zone, status } = req.body;
+    
+    let query = 'UPDATE delivery_persons SET ';
+    let params = [];
+    let updates = [];
+    
+    if (name !== undefined) { updates.push('name = ?'); params.push(name); }
+    if (phone !== undefined) { updates.push('phone = ?'); params.push(phone); }
+    if (vehicle !== undefined) { updates.push('vehicle = ?'); params.push(vehicle); }
+    if (gps_position !== undefined) { updates.push('gps_position = ?'); params.push(gps_position); }
+    if (availability !== undefined) { updates.push('availability = ?'); params.push(availability); }
+    if (delivery_zone !== undefined) { updates.push('delivery_zone = ?'); params.push(delivery_zone); }
+    if (status !== undefined) { updates.push('status = ?'); params.push(status); }
+    
+    if (updates.length === 0) return res.status(400).json({ error: 'No fields to update' });
+    
+    query += updates.join(', ') + ' WHERE id = ?';
+    params.push(id);
+    
+    db.run(query, params, function(err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ success: true });
+    });
+});
+
+// Delete a delivery person
+app.delete('/api/delivery-persons/:id', (req, res) => {
+    const { id } = req.params;
+    db.run('DELETE FROM delivery_persons WHERE id = ?', [id], function(err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ success: true });
     });
 });
 
