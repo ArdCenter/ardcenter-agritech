@@ -344,6 +344,7 @@ const initDb = async function initDb() {
             bio TEXT,
             experience_years INTEGER DEFAULT 0,
             rating REAL DEFAULT 0,
+            reviews_count INTEGER DEFAULT 0,
             consultations_count INTEGER DEFAULT 0,
             availability_status TEXT DEFAULT 'available',
             languages TEXT,
@@ -487,6 +488,24 @@ const initDb = async function initDb() {
             )
         `);
 
+        // Create Expert Points History table
+        await db.execute(`
+            CREATE TABLE IF NOT EXISTS expert_points_history (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                expert_id INTEGER NOT NULL,
+                points INTEGER NOT NULL,
+                reason TEXT NOT NULL,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(expert_id) REFERENCES experts(id)
+            )
+        `);
+
+        // Check if reviews_count exists in experts table
+        const expertsInfo = await db.execute("PRAGMA table_info(experts)");
+        if (!expertsInfo.rows.find(col => col.name === 'reviews_count')) {
+            await db.execute("ALTER TABLE experts ADD COLUMN reviews_count INTEGER DEFAULT 0");
+        }
+
         // Seed Delivery Persons
         const deliveryCheck = await db.execute('SELECT id FROM delivery_persons LIMIT 1');
         if (deliveryCheck.rows.length === 0) {
@@ -529,6 +548,34 @@ const initDb = async function initDb() {
             await db.execute(`ALTER TABLE experts ADD COLUMN bio_fr TEXT`).catch(() => {});
             await db.execute(`ALTER TABLE experts ADD COLUMN bio_ar TEXT`).catch(() => {});
             
+            // Registration system fields
+            await db.execute(`ALTER TABLE experts ADD COLUMN city TEXT`).catch(() => {});
+            await db.execute(`ALTER TABLE experts ADD COLUMN phone TEXT`).catch(() => {});
+            await db.execute(`ALTER TABLE experts ADD COLUMN price INTEGER DEFAULT 0`).catch(() => {});
+            await db.execute(`ALTER TABLE experts ADD COLUMN subscription_plan TEXT`).catch(() => {});
+            await db.execute(`ALTER TABLE experts ADD COLUMN subscription_status TEXT`).catch(() => {});
+            await db.execute(`ALTER TABLE experts ADD COLUMN approval_status TEXT DEFAULT 'active'`).catch(() => {});
+            await db.execute(`ALTER TABLE experts ADD COLUMN documents TEXT`).catch(() => {});
+            await db.execute(`ALTER TABLE experts ADD COLUMN degrees TEXT`).catch(() => {});
+            
+            // Monthly subscription and points
+            await db.execute(`ALTER TABLE experts ADD COLUMN subscription_start_date TEXT`).catch(() => {});
+            await db.execute(`ALTER TABLE experts ADD COLUMN subscription_end_date TEXT`).catch(() => {});
+            await db.execute(`ALTER TABLE experts ADD COLUMN points INTEGER DEFAULT 0`).catch(() => {});
+            
+            await db.execute(`
+                CREATE TABLE IF NOT EXISTS expert_subscription_payments (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    expert_id INTEGER NOT NULL,
+                    plan_name TEXT NOT NULL,
+                    amount INTEGER NOT NULL,
+                    points_used INTEGER DEFAULT 0,
+                    payment_date TEXT DEFAULT CURRENT_TIMESTAMP,
+                    valid_until TEXT NOT NULL,
+                    FOREIGN KEY(expert_id) REFERENCES experts(id)
+                )
+            `).catch(e => console.error(e));
+            
             // Add columns for product recommendations safely
             await db.execute("ALTER TABLE consultation_messages ADD COLUMN message_type TEXT DEFAULT 'text'").catch(() => {});
             await db.execute("ALTER TABLE consultation_messages ADD COLUMN product_id INTEGER DEFAULT NULL").catch(() => {});
@@ -566,7 +613,7 @@ const initDb = async function initDb() {
                 { id: 4, name_ar: "الحشرات والآفات", name_fr: "Ravageurs et insectes", desc_ar: "مكافحة الحشرات والآفات الزراعية.", desc_fr: "Lutte contre les insectes et ravageurs agricoles.", icon: "Bug", image: "/experts/cat_pests_1777854843242.png" },
                 { id: 5, name_ar: "الأشجار المثمرة", name_fr: "Arbres fruitiers", desc_ar: "زراعة ورعاية الأشجار المثمرة.", desc_fr: "Culture et entretien des arbres fruitiers.", icon: "Trees", image: "/experts/cat_trees_1777854860124.png" },
                 { id: 6, name_ar: "الخضروات والمحاصيل", name_fr: "Légumes et cultures", desc_ar: "زراعة الخضروات والمحاصيل الحقلية.", desc_fr: "Culture de légumes et grandes cultures.", icon: "Wheat", image: "https://images.unsplash.com/photo-1598170845058-32b9d6a5da37?q=80&w=800&auto=format&fit=crop" },
-                { id: 7, name_ar: "الزراعة الذكية", name_fr: "Agriculture intelligente", desc_ar: "استخدام التكنولوجيا الحديثة في الزراعة.", desc_fr: "Utilisation des technologies modernes en agriculture.", icon: "Cpu", image: "https://images.unsplash.com/photo-1586771107445-d3af2e84d469?q=80&w=800&auto=format&fit=crop" }
+                { id: 7, name_ar: "الزراعة الذكية", name_fr: "Agriculture intelligente", desc_ar: "استخدام التكنولوجيا الحديثة في الزراعة.", desc_fr: "Utilisation des technologies modernes en agriculture.", icon: "Cpu", image: "/experts/cat_smart_agri.png" }
             ];
             
             for (const cat of categoriesSeed) {

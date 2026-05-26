@@ -59,7 +59,7 @@ async function seed() {
     try {
         for (let i = 0; i < additionalExperts.length; i++) {
             const exp = additionalExperts[i];
-            const profile_image = avatars[i % avatars.length]; // give them diverse avatars
+            const profile_image = null; // Do not seed avatars
             // Randomly set availability status to make it realistic
             const statuses = ['available', 'busy', 'offline'];
             const status = statuses[Math.floor(Math.random() * statuses.length)];
@@ -90,9 +90,9 @@ async function seed() {
             }
         }
 
-        // Also update existing experts to have profile images, statuses, and counts if they don't have them
+        // Also update existing experts to have statuses and counts if they don't have them, but keep profile_image as null
         await new Promise((resolve, reject) => {
-            db.run("UPDATE experts SET profile_image = 'https://i.pravatar.cc/150?img=69', availability_status = 'available', consultations_count = 120 WHERE profile_image IS NULL", [], (err) => {
+            db.run("UPDATE experts SET availability_status = 'available', consultations_count = 120 WHERE availability_status IS NULL", [], (err) => {
                 if (err) reject(err);
                 else resolve();
             });

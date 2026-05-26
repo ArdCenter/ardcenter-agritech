@@ -259,14 +259,45 @@ app.post('/api/signup', (req, res) => {
 app.post('/api/login', (req, res) => {
     const { email, password } = req.body;
     
-    db.get('SELECT id, name, email, role FROM users WHERE email = ? AND password = ?', [email, password], (err, row) => {
+    db.get('SELECT id, name, email, role FROM users WHERE email = ? AND password = ?', [email, password], (err, userRow) => {
         if (err) return res.status(500).json({ error: err.message });
         
-        if (!row) {
+        if (!userRow) {
             return res.status(401).json({ error: 'Email ou mot de passe incorrect.' });
         }
         
-        res.json(row);
+        if (userRow.role === 'expert') {
+            db.get('SELECT id as expert_id, approval_status, subscription_end_date, points FROM experts WHERE user_id = ?', [userRow.id], (err, expertRow) => {
+                if (err) return res.status(500).json({ error: err.message });
+                
+                if (expertRow) {
+                    let currentStatus = expertRow.approval_status;
+                    
+                    // Check expiration
+                    if (currentStatus === 'active' && expertRow.subscription_end_date) {
+                        const endDate = new Date(expertRow.subscription_end_date);
+                        const now = new Date();
+                        if (now > endDate) {
+                            currentStatus = 'expired';
+                            // Update DB
+                            db.run("UPDATE experts SET approval_status = 'expired', is_active = 0 WHERE id = ?", [expertRow.expert_id]);
+                        }
+                    }
+                    
+                    return res.json({
+                        ...userRow,
+                        expert_id: expertRow.expert_id,
+                        approval_status: currentStatus,
+                        subscription_end_date: expertRow.subscription_end_date,
+                        points: expertRow.points || 0
+                    });
+                }
+                
+                res.json(userRow);
+            });
+        } else {
+            res.json(userRow);
+        }
     });
 });
 
@@ -812,6 +843,30 @@ app.post('/api/expert-consultations/:consultationId/messages', (req, res) => {
         
         // Update consultation updated_at
         db.run("UPDATE expert_consultations SET updated_at = CURRENT_TIMESTAMP WHERE id = ?", [consultationId]);
+
+        // Points Logic for Expert
+        if (senderRole === 'expert') {
+            db.get('SELECT expert_id FROM expert_consultations WHERE id = ?', [consultationId], (err, row) => {
+                if (row && row.expert_id) {
+                    const expertId = row.expert_id;
+                    let pointsToAdd = 0;
+                    let reason = '';
+
+                    if (message_type === 'product_recommendation') {
+                        pointsToAdd = 25;
+                        reason = 'Produit recommandé';
+                    } else if (message_type !== 'system') {
+                        pointsToAdd = 3; // Basic fast reply point
+                        reason = 'Réponse rapide';
+                    }
+
+                    if (pointsToAdd > 0) {
+                        db.run('UPDATE experts SET points = points + ? WHERE id = ?', [pointsToAdd, expertId]);
+                        db.run('INSERT INTO expert_points_history (expert_id, points, reason) VALUES (?, ?, ?)', [expertId, pointsToAdd, reason]);
+                    }
+                }
+            });
+        }
         
         // Fetch created message to return
         db.get('SELECT * FROM consultation_messages WHERE id = ?', [messageId], (err, row) => {
@@ -874,11 +929,18 @@ app.put('/api/expert-consultations/:consultationId/request-close', (req, res) =>
         
         db.run(updateQuery, params, function(err) {
             if (err) return res.status(500).json({ error: err.message });
+            
+            // Add points if closed
+            if (newStatus === 'closed') {
+                db.run('UPDATE experts SET points = points + 10 WHERE id = ?', [consultation.expert_id]);
+                db.run(`INSERT INTO expert_points_history (expert_id, points, reason) VALUES (?, 10, 'Consultation terminée')`, [consultation.expert_id]);
+            }
+            
             res.json({
                 success: true,
                 status: newStatus,
-                clientCloseRequested: clientClose,
-                expertCloseRequested: expertClose
+                clientCloseRequested: !!clientClose,
+                expertCloseRequested: !!expertClose
             });
         });
     });
@@ -960,13 +1022,22 @@ app.post('/api/expert-reviews', (req, res) => {
     db.run(query, [consultationId, expertId, clientId, rating, comment || null], function(err) {
         if (err) return res.status(500).json({ error: err.message });
         
-        // Update average rating
-        db.get('SELECT AVG(rating) as avg_rating FROM expert_reviews WHERE expert_id = ?', [expertId], (err, row) => {
+        // Update average rating and reviews count
+        db.get('SELECT AVG(rating) as avg_rating, COUNT(*) as r_count FROM expert_reviews WHERE expert_id = ?', [expertId], (err, row) => {
             if (!err && row && row.avg_rating) {
                 const newRating = parseFloat(row.avg_rating).toFixed(1);
-                db.run('UPDATE experts SET rating = ? WHERE id = ?', [newRating, expertId]);
+                db.run('UPDATE experts SET rating = ?, reviews_count = ? WHERE id = ?', [newRating, row.r_count, expertId]);
             }
         });
+        
+        // Gamification: Add points for a 5-star rating (+5 points)
+        if (rating === 5) {
+            db.run('UPDATE experts SET points = points + 5 WHERE id = ?', [expertId], function(err) {
+                if (!err) {
+                    db.run('INSERT INTO expert_points_history (expert_id, points, reason) VALUES (?, ?, ?)', [expertId, 5, '5-star rating from client']);
+                }
+            });
+        }
         
         res.status(201).json({ id: this.lastID, message: 'Review submitted successfully' });
     });
@@ -992,6 +1063,55 @@ app.get('/api/expert-consultations/:consultationId/review', (req, res) => {
     db.get('SELECT * FROM expert_reviews WHERE consultation_id = ?', [consultationId], (err, row) => {
         if (err) return res.status(500).json({ error: err.message });
         res.json(row || null);
+    });
+});
+
+app.get('/api/experts/:id/points-history', (req, res) => {
+    const { id } = req.params;
+    db.all('SELECT * FROM expert_points_history WHERE expert_id = ? ORDER BY created_at DESC', [id], (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(rows);
+    });
+});
+
+app.put('/api/experts/:id/subscribe', (req, res) => {
+    const { id } = req.params;
+    const { plan, points_used, final_price } = req.body;
+    
+    // Add 30 days to current date
+    const endDate = new Date();
+    endDate.setDate(endDate.getDate() + 30);
+    const endDateStr = endDate.toISOString();
+    
+    db.serialize(() => {
+        db.run('BEGIN TRANSACTION');
+        
+        // Update expert status
+        db.run(`
+            UPDATE experts 
+            SET approval_status = 'active', 
+                is_active = 1, 
+                subscription_start_date = CURRENT_TIMESTAMP, 
+                subscription_end_date = ?,
+                points = points - ?
+            WHERE id = ? OR user_id = ?
+        `, [endDateStr, points_used || 0, id, id], function(err) {
+            if (err) {
+                db.run('ROLLBACK');
+                return res.status(500).json({ error: err.message });
+            }
+            
+            // Record points history if points were used
+            if (points_used > 0) {
+                db.run(`
+                    INSERT INTO expert_points_history (expert_id, points, reason) 
+                    VALUES (?, ?, ?)
+                `, [id, -points_used, `Réduction pour abonnement ${plan}`]);
+            }
+            
+            db.run('COMMIT');
+            res.json({ success: true, message: 'Subscription updated' });
+        });
     });
 });
 
@@ -1117,6 +1237,153 @@ app.put('/api/admin/experts/:id/reset-password', (req, res) => {
     });
 });
 
+// --- EXPERT REGISTRATION & SUBSCRIPTION SYSTEM ---
+
+app.post('/api/expert-register', (req, res) => {
+    const { 
+        full_name, email, password, phone, category_id, 
+        specialty, bio, experience_years, languages, city, degrees, documents
+    } = req.body;
+    
+    if (!email || !full_name || !password) {
+        return res.status(400).json({ error: 'Email, Name, and Password are required' });
+    }
+
+    db.get("SELECT id FROM users WHERE email = ?", [email], (err, row) => {
+        if (err) return res.status(500).json({ error: err.message });
+        if (row) return res.status(400).json({ error: 'Un compte avec cet email existe déjà.' });
+        
+        db.run(`INSERT INTO users (name, email, password, phone, role) VALUES (?, ?, ?, ?, 'expert')`, 
+            [full_name, email, password, phone || ''], function(err) {
+            if (err) return res.status(500).json({ error: err.message });
+            
+            const userId = this.lastID;
+            
+            const expertQuery = `
+                INSERT INTO experts (
+                    user_id, category_id, full_name, full_name_fr, full_name_ar, 
+                    specialty, specialty_fr, specialty_ar, 
+                    bio, bio_fr, bio_ar, 
+                    experience_years, languages, city, phone, price, degrees, documents, 
+                    is_active, approval_status, points
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, 0, 'pending_validation', 0)
+            `;
+            
+            db.run(expertQuery, [
+                userId, category_id || 1, full_name, full_name, full_name, 
+                specialty || '', specialty || '', specialty || '', 
+                bio || '', bio || '', bio || '', 
+                experience_years || 0, languages || '', city || '', phone || '', 
+                degrees || '', documents || ''
+            ], function(err) {
+                if (err) return res.status(500).json({ error: err.message });
+                res.status(201).json({
+                    success: true,
+                    expert_id: this.lastID,
+                    message: "Inscription réussie, en attente de validation."
+                });
+            });
+        });
+    });
+});
+
+app.get('/api/admin/expert-applications', (req, res) => {
+    const query = `
+        SELECT e.*, c.name_fr as category_name_fr, c.name_ar as category_name_ar, u.email as user_email
+        FROM experts e
+        LEFT JOIN expert_categories c ON e.category_id = c.id
+        LEFT JOIN users u ON e.user_id = u.id
+        WHERE e.approval_status != 'active' OR e.approval_status IS NULL
+        ORDER BY e.created_at DESC
+    `;
+    db.all(query, [], (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(rows);
+    });
+});
+
+app.put('/api/admin/expert-applications/:id/status', (req, res) => {
+    const { id } = req.params;
+    const { status } = req.body; // 'pending_validation', 'approved_waiting_payment', 'active', 'rejected', 'suspended'
+    
+    // For 'approved_waiting_payment', we don't set is_active=1 yet. That happens after payment.
+    // If status is 'active', we set is_active=1.
+    const is_active = status === 'active' ? 1 : 0;
+    
+    db.run("UPDATE experts SET approval_status = ?, is_active = ? WHERE id = ?", [status, is_active, id], function(err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ success: true, status });
+    });
+});
+
+app.put('/api/experts/:id/subscribe', (req, res) => {
+    const { id } = req.params;
+    const { plan, points_used, final_price } = req.body; // 'Basic', 'Pro', 'Premium'
+    
+    if (!['Basic', 'Pro', 'Premium'].includes(plan)) {
+        return res.status(400).json({ error: 'Invalid plan selected' });
+    }
+    
+    db.get('SELECT id, points FROM experts WHERE id = ? OR user_id = ?', [id, id], (err, expert) => {
+        if (err) return res.status(500).json({ error: err.message });
+        if (!expert) return res.status(404).json({ error: 'Expert not found' });
+        
+        const used = parseInt(points_used) || 0;
+        if (used > expert.points) {
+            return res.status(400).json({ error: 'Not enough points' });
+        }
+        
+        // Calculate dates (+30 days)
+        const now = new Date();
+        const end = new Date(now);
+        end.setDate(end.getDate() + 30);
+        
+        const startStr = now.toISOString();
+        const endStr = end.toISOString();
+        
+        // Insert into payment history
+        const insertPayment = `
+            INSERT INTO expert_subscription_payments (expert_id, plan_name, amount, points_used, valid_until)
+            VALUES (?, ?, ?, ?, ?)
+        `;
+        
+        db.run(insertPayment, [expert.id, plan, final_price, used, endStr], function(err) {
+            if (err) return res.status(500).json({ error: err.message });
+            
+            // Update expert record
+            const updateQuery = `
+                UPDATE experts 
+                SET subscription_plan = ?, 
+                    subscription_status = 'active', 
+                    approval_status = 'active', 
+                    is_active = 1,
+                    points = points - ?,
+                    subscription_start_date = ?,
+                    subscription_end_date = ?
+                WHERE id = ?
+            `;
+            
+            db.run(updateQuery, [plan, used, startStr, endStr, expert.id], function(err) {
+                if (err) return res.status(500).json({ error: err.message });
+                res.json({ success: true, message: 'Subscription activated' });
+            });
+        });
+    });
+});
+
+app.post('/api/experts/:id/points', (req, res) => {
+    const { id } = req.params;
+    const { amount, reason } = req.body; 
+    // amount > 0 for addition. 
+    // Usually triggered internally, but added here for testing & completeness
+    db.run("UPDATE experts SET points = points + ? WHERE id = ? OR user_id = ?", [amount, id, id], function(err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ success: true, message: 'Points updated' });
+    });
+});
+
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
+

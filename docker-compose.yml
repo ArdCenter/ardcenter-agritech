@@ -1,0 +1,56 @@
+
+
+services:
+  # ----------------------------------------------------
+  # 1. SERVICE BACKEND (API Express + SQLite)
+  # ----------------------------------------------------
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ardcenter-backend
+    ports:
+      - "5000:5000"
+    environment:
+      - PORT=5000
+      - NODE_ENV=production
+      # Laisser DATABASE_URL vide pour utiliser le fichier SQLite local de développement
+      - DATABASE_URL=
+    volumes:
+      # Montage du fichier de base de données pour persister les données entre les redémarrages
+      - ./backend/market.sqlite:/app/market.sqlite
+    restart: unless-stopped
+
+  # ----------------------------------------------------
+  # 2. SERVICE ML (API FastAPI + PyTorch pour le diagnostic)
+  # ----------------------------------------------------
+  ml-service:
+    build:
+      context: ./ml-service
+      dockerfile: Dockerfile
+    container_name: ardcenter-ml-service
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+    restart: unless-stopped
+
+  # ----------------------------------------------------
+  # 3. SERVICE FRONTEND (React SPA + Nginx)
+  # ----------------------------------------------------
+  frontend:
+    build:
+      context: ./market-place
+      dockerfile: Dockerfile
+      args:
+        # Note : Ces URLs sont utilisées par le navigateur client.
+        # En local, localhost est approprié. En production, remplacez par votre domaine public.
+        - VITE_API_URL=http://localhost:5000
+        - VITE_ML_API_URL=http://localhost:8000
+    container_name: ardcenter-frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+      - ml-service
+    restart: unless-stopped
